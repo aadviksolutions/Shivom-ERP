@@ -1,0 +1,696 @@
+// Prisma schema for BuildStock ERP
+// Construction & Hardware Business ERP
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  BILLING
+  STORE
+}
+
+enum EntityType {
+  CUSTOMER
+  SUPPLIER
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CHEQUE
+  CREDIT
+  NEFT_RTGS
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  PARTIAL
+  CANCELLED
+  VOID
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  CONVERTED
+}
+
+enum MovementType {
+  OPENING
+  PURCHASE
+  SALE
+  PURCHASE_RETURN
+  SALE_RETURN
+  ADJUSTMENT_INCREASE
+  ADJUSTMENT_DECREASE
+  TRANSFER
+}
+
+model User {
+  id           String         @id @default(cuid())
+  name         String
+  email        String         @unique
+  passwordHash String
+  role         Role           @default(ADMIN)
+  phone        String?
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  sales        Sale[]
+  purchases    Purchase[]
+  quotations   Quotation[]
+  payments     Payment[]
+  expenses     Expense[]
+  movements    StockMovement[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Company {
+  id              String   @id @default(cuid())
+  name            String   @default("BuildStock ERP")
+  legalName       String?  @default("Shivom Construction & Hardware Supplies")
+  gstin           String?
+  pan             String?
+  email           String?
+  phone           String?
+  altPhone        String?
+  address         String?
+  city            String?
+  state           String?  @default("Maharashtra")
+  stateCode       String?  @default("27")
+  pincode         String?
+  logoUrl         String?
+  bankName        String?
+  bankAccountNo   String?
+  bankIfsc        String?
+  bankBranch      String?
+  upiId           String?
+  invoiceTerms    String?  @default("1. Goods once sold will not be taken back.\n2. Interest @18% p.a. will be charged if bill is not paid within due date.\n3. Subject to local jurisdiction only.")
+  invoicePrefix   String   @default("INV-")
+  quotationPrefix String   @default("QTN-")
+  purchasePrefix  String   @default("PO-")
+  paymentPrefix   String   @default("REC-")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("companies")
+}
+
+model Setting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  category    String   @default("GENERAL")
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[]
+
+  @@map("brands")
+}
+
+model Unit {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  code        String    @unique
+  description String?
+  isDefault   Boolean   @default(false)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[]
+
+  @@map("units")
+}
+
+model Warehouse {
+  id          String          @id @default(cuid())
+  name        String
+  code        String          @unique
+  address     String?
+  isDefault   Boolean         @default(false)
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  stocks      Stock[]
+  movements   StockMovement[]
+  saleItems   SaleItem[]
+  purchaseItems PurchaseItem[]
+
+  @@map("warehouses")
+}
+
+model Product {
+  id             String          @id @default(cuid())
+  name           String
+  sku            String          @unique
+  barcode        String?         @unique
+  description    String?
+  hsnCode        String?
+  purchasePrice  Float           @default(0)
+  salePrice      Float           @default(0)
+  minSalePrice   Float?          @default(0)
+  gstRate        Float           @default(18) // e.g. 0, 5, 12, 18, 28
+  minStockLevel  Float           @default(10)
+  openingStock   Float           @default(0)
+  currentStock   Float           @default(0)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  categoryId     String?
+  category       Category?       @relation(fields: [categoryId], references: [id])
+
+  brandId        String?
+  brand          Brand?          @relation(fields: [brandId], references: [id])
+
+  unitId         String
+  unit           Unit            @relation(fields: [unitId], references: [id])
+
+  stocks         Stock[]
+  movements      StockMovement[]
+  saleItems      SaleItem[]
+  purchaseItems  PurchaseItem[]
+  quotationItems QuotationItem[]
+
+  @@index([name])
+  @@index([sku])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model Stock {
+  id          String     @id @default(cuid())
+  productId   String
+  warehouseId String
+  quantity    Float      @default(0)
+  minStock    Float      @default(10)
+  updatedAt   DateTime   @updatedAt
+
+  product     Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse   Warehouse  @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, warehouseId])
+  @@map("stocks")
+}
+
+model StockMovement {
+  id            String       @id @default(cuid())
+  productId     String
+  warehouseId   String?
+  type          MovementType
+  quantity      Float        // positive or negative
+  balanceAfter  Float
+  referenceType String?      // SALE, PURCHASE, ADJUSTMENT, RETURN
+  referenceId   String?      // Invoice number or PO number
+  reason        String?
+  createdById   String?
+  createdAt     DateTime     @default(now())
+
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse     Warehouse?   @relation(fields: [warehouseId], references: [id])
+  createdBy     User?        @relation(fields: [createdById], references: [id])
+
+  @@index([productId])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+model Customer {
+  id             String         @id @default(cuid())
+  name           String
+  contactPerson  String?
+  mobile         String
+  phone          String?
+  whatsapp       String?
+  email          String?
+  address        String?
+  city           String?
+  state          String         @default("Maharashtra")
+  stateCode      String         @default("27")
+  pincode        String?
+  gstin          String?
+  pan            String?
+  creditLimit    Float          @default(0)
+  openingBalance Float          @default(0)
+  currentBalance Float          @default(0) // positive = receivable from customer
+  totalSales     Float          @default(0)
+  totalPaid      Float          @default(0)
+  notes          String?
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  sales          Sale[]
+  quotations     Quotation[]
+  payments       Payment[]
+  ledgerEntries  LedgerEntry[]
+
+  @@index([name])
+  @@index([mobile])
+  @@map("customers")
+}
+
+model Supplier {
+  id             String         @id @default(cuid())
+  name           String
+  contactPerson  String?
+  mobile         String
+  phone          String?
+  whatsapp       String?
+  email          String?
+  address        String?
+  city           String?
+  state          String         @default("Maharashtra")
+  stateCode      String         @default("27")
+  pincode        String?
+  gstin          String?
+  pan            String?
+  openingBalance Float          @default(0)
+  currentBalance Float          @default(0) // positive = payable to supplier
+  totalPurchase  Float          @default(0)
+  totalPaid      Float          @default(0)
+  notes          String?
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  purchases      Purchase[]
+  payments       Payment[]
+  ledgerEntries  LedgerEntry[]
+
+  @@index([name])
+  @@index([mobile])
+  @@map("suppliers")
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  quotationNumber String          @unique
+  date            DateTime        @default(now())
+  validUntil      DateTime?
+  customerId      String
+  status          QuotationStatus @default(DRAFT)
+  subtotal        Float           @default(0)
+  discount        Float           @default(0)
+  taxableAmount   Float           @default(0)
+  cgstAmount      Float           @default(0)
+  sgstAmount      Float           @default(0)
+  igstAmount      Float           @default(0)
+  taxAmount       Float           @default(0)
+  grandTotal      Float           @default(0)
+  notes           String?
+  terms           String?
+  createdById     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  createdBy       User?           @relation(fields: [createdById], references: [id])
+  items           QuotationItem[]
+  sale            Sale?
+
+  @@index([quotationNumber])
+  @@index([customerId])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id            String    @id @default(cuid())
+  quotationId   String
+  productId     String
+  description   String?
+  hsnCode       String?
+  unit          String?
+  quantity      Float
+  rate          Float
+  discount      Float     @default(0)
+  taxableAmount Float
+  gstRate       Float     @default(18)
+  cgstAmount    Float     @default(0)
+  sgstAmount    Float     @default(0)
+  igstAmount    Float     @default(0)
+  totalAmount   Float
+
+  quotation     Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product       Product   @relation(fields: [productId], references: [id])
+
+  @@map("quotation_items")
+}
+
+model Sale {
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique
+  date          DateTime      @default(now())
+  dueDate       DateTime?
+  customerId    String
+  status        InvoiceStatus @default(ISSUED)
+  paymentMode   PaymentMode   @default(CASH)
+  isInterState  Boolean       @default(false)
+  subtotal      Float         @default(0)
+  discount      Float         @default(0)
+  taxableAmount Float         @default(0)
+  cgstAmount    Float         @default(0)
+  sgstAmount    Float         @default(0)
+  igstAmount    Float         @default(0)
+  taxAmount     Float         @default(0)
+  grandTotal    Float         @default(0)
+  paidAmount    Float         @default(0)
+  balanceAmount Float         @default(0)
+  notes         String?
+  terms         String?
+  quotationId   String?       @unique
+  createdById   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  quotation     Quotation?    @relation(fields: [quotationId], references: [id])
+  createdBy     User?         @relation(fields: [createdById], references: [id])
+  items         SaleItem[]
+  payments      Payment[]
+  returns       SaleReturn[]
+  ledgerEntries LedgerEntry[]
+
+  @@index([invoiceNumber])
+  @@index([customerId])
+  @@index([date])
+  @@map("sales")
+}
+
+model SaleItem {
+  id            String     @id @default(cuid())
+  saleId        String
+  productId     String
+  warehouseId   String?
+  description   String?
+  hsnCode       String?
+  unit          String?
+  quantity      Float
+  rate          Float
+  discount      Float      @default(0)
+  taxableAmount Float
+  gstRate       Float      @default(18)
+  cgstAmount    Float      @default(0)
+  sgstAmount    Float      @default(0)
+  igstAmount    Float      @default(0)
+  totalAmount   Float
+
+  sale          Sale       @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product       Product    @relation(fields: [productId], references: [id])
+  warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
+
+  @@map("sale_items")
+}
+
+model SaleReturn {
+  id           String         @id @default(cuid())
+  returnNumber String         @unique
+  saleId       String
+  customerId   String
+  date         DateTime       @default(now())
+  reason       String?
+  subtotal     Float          @default(0)
+  taxAmount    Float          @default(0)
+  grandTotal   Float          @default(0)
+  refundAmount Float          @default(0)
+  createdById  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  sale         Sale           @relation(fields: [saleId], references: [id])
+  items        SaleReturnItem[]
+
+  @@map("sale_returns")
+}
+
+model SaleReturnItem {
+  id           String     @id @default(cuid())
+  saleReturnId String
+  productId    String
+  quantity     Float
+  rate         Float
+  gstRate      Float      @default(18)
+  taxAmount    Float      @default(0)
+  totalAmount  Float
+
+  saleReturn   SaleReturn @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
+
+  @@map("sale_return_items")
+}
+
+model Purchase {
+  id                String        @id @default(cuid())
+  purchaseNumber    String        @unique
+  supplierInvoiceNo String?
+  date              DateTime      @default(now())
+  supplierId        String
+  status            InvoiceStatus @default(ISSUED)
+  paymentMode       PaymentMode   @default(BANK_TRANSFER)
+  isInterState      Boolean       @default(false)
+  subtotal          Float         @default(0)
+  discount          Float         @default(0)
+  taxableAmount     Float         @default(0)
+  cgstAmount        Float         @default(0)
+  sgstAmount        Float         @default(0)
+  igstAmount        Float         @default(0)
+  taxAmount         Float         @default(0)
+  grandTotal        Float         @default(0)
+  paidAmount        Float         @default(0)
+  balanceAmount     Float         @default(0)
+  notes             String?
+  createdById       String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  supplier          Supplier      @relation(fields: [supplierId], references: [id])
+  createdBy         User?         @relation(fields: [createdById], references: [id])
+  items             PurchaseItem[]
+  payments          Payment[]
+  returns           PurchaseReturn[]
+  ledgerEntries     LedgerEntry[]
+
+  @@index([purchaseNumber])
+  @@index([supplierId])
+  @@index([date])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id            String     @id @default(cuid())
+  purchaseId    String
+  productId     String
+  warehouseId   String?
+  description   String?
+  hsnCode       String?
+  unit          String?
+  quantity      Float
+  rate          Float
+  discount      Float      @default(0)
+  taxableAmount Float
+  gstRate       Float      @default(18)
+  cgstAmount    Float      @default(0)
+  sgstAmount    Float      @default(0)
+  igstAmount    Float      @default(0)
+  totalAmount   Float
+
+  purchase      Purchase   @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product       Product    @relation(fields: [productId], references: [id])
+  warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
+
+  @@map("purchase_items")
+}
+
+model PurchaseReturn {
+  id           String               @id @default(cuid())
+  returnNumber String               @unique
+  purchaseId   String
+  supplierId   String
+  date         DateTime             @default(now())
+  reason       String?
+  subtotal     Float                @default(0)
+  taxAmount    Float                @default(0)
+  grandTotal   Float                @default(0)
+  createdById  String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  purchase     Purchase             @relation(fields: [purchaseId], references: [id])
+  items        PurchaseReturnItem[]
+
+  @@map("purchase_returns")
+}
+
+model PurchaseReturnItem {
+  id               String         @id @default(cuid())
+  purchaseReturnId String
+  productId        String
+  quantity         Float
+  rate             Float
+  gstRate          Float          @default(18)
+  taxAmount        Float          @default(0)
+  totalAmount      Float
+
+  purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_return_items")
+}
+
+model Payment {
+  id            String       @id @default(cuid())
+  paymentNumber String       @unique
+  type          EntityType   // CUSTOMER or SUPPLIER
+  customerId    String?
+  supplierId    String?
+  saleId        String?
+  purchaseId    String?
+  date          DateTime     @default(now())
+  amount        Float
+  paymentMode   PaymentMode  @default(CASH)
+  referenceNo   String?
+  bankName      String?
+  chequeNo      String?
+  chequeDate    DateTime?
+  notes         String?
+  createdById   String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  customer      Customer?    @relation(fields: [customerId], references: [id])
+  supplier      Supplier?    @relation(fields: [supplierId], references: [id])
+  sale          Sale?        @relation(fields: [saleId], references: [id])
+  purchase      Purchase?    @relation(fields: [purchaseId], references: [id])
+  createdBy     User?        @relation(fields: [createdById], references: [id])
+  ledgerEntries LedgerEntry[]
+
+  @@index([paymentNumber])
+  @@index([type])
+  @@index([date])
+  @@map("payments")
+}
+
+model ExpenseCategory {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  expenses    Expense[]
+
+  @@map("expense_categories")
+}
+
+model Expense {
+  id            String          @id @default(cuid())
+  expenseNumber String          @unique
+  categoryId    String
+  date          DateTime        @default(now())
+  amount        Float
+  paymentMode   PaymentMode     @default(CASH)
+  paidTo        String?
+  referenceNo   String?
+  description   String?
+  receiptUrl    String?
+  createdById   String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  category      ExpenseCategory @relation(fields: [categoryId], references: [id])
+  createdBy     User?           @relation(fields: [createdById], references: [id])
+
+  @@index([expenseNumber])
+  @@index([date])
+  @@map("expenses")
+}
+
+model LedgerEntry {
+  id              String      @id @default(cuid())
+  date            DateTime    @default(now())
+  entityType      EntityType
+  customerId      String?
+  supplierId      String?
+  transactionType String      // INVOICE, PAYMENT, RETURN, OPENING_BALANCE, ADJUSTMENT
+  referenceNo     String?
+  saleId          String?
+  purchaseId      String?
+  paymentId       String?
+  debit           Float       @default(0) // Increases customer receivable / Decreases supplier payable
+  credit          Float       @default(0) // Decreases customer receivable / Increases supplier payable
+  runningBalance  Float       @default(0)
+  notes           String?
+  createdById     String?
+  createdAt       DateTime    @default(now())
+
+  customer        Customer?   @relation(fields: [customerId], references: [id])
+  supplier        Supplier?   @relation(fields: [supplierId], references: [id])
+  sale            Sale?       @relation(fields: [saleId], references: [id])
+  purchase        Purchase?   @relation(fields: [purchaseId], references: [id])
+  payment         Payment?    @relation(fields: [paymentId], references: [id])
+
+  @@index([entityType, customerId])
+  @@index([entityType, supplierId])
+  @@index([date])
+  @@map("ledger_entries")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  userName    String?
+  action      String   // CREATE, UPDATE, DELETE, CANCEL, ADJUST
+  module      String   // SALE, PURCHASE, INVENTORY, CUSTOMER, SUPPLIER, PAYMENT, SETTINGS
+  recordId    String?
+  recordTitle String?
+  details     String?  // JSON or text summary
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([module])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
