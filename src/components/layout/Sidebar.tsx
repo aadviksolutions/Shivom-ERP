@@ -157,8 +157,8 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 export default function Sidebar({
-  userRole = "ADMIN",
-  currentUser = { name: "Owner Admin", email: "admin@shivomconstruction.com", role: "ADMIN" },
+  userRole = "BILLING",
+  currentUser = { name: "ERP User", email: "", role: "BILLING" },
   isOpen,
   onClose,
 }: SidebarProps) {
@@ -211,12 +211,12 @@ export default function Sidebar({
     }
 
     try {
-      // Find current user ID or update via auth endpoint
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "CHANGE_PASSWORD", newPassword }),
+        body: JSON.stringify({ newPassword }),
       });
+      const data = await res.json();
       if (res.ok) {
         setPasswordFeedback("Password successfully updated.");
         setTimeout(() => {
@@ -225,15 +225,10 @@ export default function Sidebar({
           setNewPassword("");
         }, 1500);
       } else {
-        setPasswordFeedback("Password updated for your session.");
-        setTimeout(() => {
-          setPasswordModalOpen(false);
-          setPasswordFeedback(null);
-        }, 1500);
+        setPasswordFeedback(data.error || "Failed to update password.");
       }
     } catch {
-      setPasswordFeedback("Password change recorded.");
-      setTimeout(() => setPasswordModalOpen(false), 1500);
+      setPasswordFeedback("Network error. Please try again.");
     }
   };
 
@@ -308,14 +303,25 @@ export default function Sidebar({
 
         {/* 2. PROMINENT NEW BILLING CTA */}
         <div className="p-3 border-b border-slate-800/80 shrink-0 bg-[#141619]">
-          <Link
-            href="/sales/new"
-            onClick={onClose}
-            className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#e16718] px-3.5 py-2.5 text-xs font-bold text-white shadow-md shadow-orange-600/25 hover:bg-[#c9550e] transition-all cursor-pointer active:scale-98"
-          >
-            <Plus className="h-4 w-4" />
-            <span>New Billing / New Sale</span>
-          </Link>
+          {userRole === "STORE" ? (
+            <Link
+              href="/purchase"
+              onClick={onClose}
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-blue-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/25 hover:bg-blue-700 transition-all cursor-pointer active:scale-98"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Purchase / Inward</span>
+            </Link>
+          ) : (
+            <Link
+              href="/sales/new"
+              onClick={onClose}
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#e16718] px-3.5 py-2.5 text-xs font-bold text-white shadow-md shadow-orange-600/25 hover:bg-[#c9550e] transition-all cursor-pointer active:scale-98"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Billing / New Sale</span>
+            </Link>
+          )}
         </div>
 
         {/* 3. SCROLLABLE NAVIGATION CONTENT */}

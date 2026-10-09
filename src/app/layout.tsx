@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/lib/AuthContext";
 
 export const metadata: Metadata = {
   title: "Shivom Construction | Building Material Supply",
@@ -20,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full bg-slate-100">
       <body className="h-full flex flex-col font-sans antialiased text-slate-800">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

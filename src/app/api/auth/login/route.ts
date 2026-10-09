@@ -40,7 +40,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const cleanIdentifier = String(identifier).trim().toLowerCase();
+    const rawIdentifier = String(identifier).trim();
+    const cleanIdentifier = rawIdentifier.toLowerCase();
 
     // Check rate limit
     if (!checkRateLimit(cleanIdentifier)) {
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await authenticateUser(cleanIdentifier, password);
+    const user = await authenticateUser(rawIdentifier, password);
 
     if (!user) {
       return NextResponse.json(

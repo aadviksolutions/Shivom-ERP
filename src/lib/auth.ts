@@ -60,12 +60,13 @@ export async function authenticateUser(identifier: string, password: string): Pr
   const cleanId = identifier.trim();
   const lowerId = cleanId.toLowerCase();
 
-  // Find user by email or username
+  // Find user by email or username (case-insensitive for email & username)
   const user = await prisma.user.findFirst({
     where: {
       OR: [
         { email: lowerId },
         { username: cleanId },
+        { username: lowerId },
       ],
     },
   });
