@@ -1,4 +1,4 @@
-// Formatting and utility functions for BuildStock ERP
+// Formatting and utility functions for Shivom Construction ERP
 
 /**
  * Format a number as Indian Rupee (INR)

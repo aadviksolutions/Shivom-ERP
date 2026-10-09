@@ -6,15 +6,16 @@ import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
 import SearchableSelect, { Option } from "@/components/ui/SearchableSelect";
 import PrintableInvoice from "@/components/invoice/PrintableInvoice";
+import NewCustomerModal from "@/components/customers/NewCustomerModal";
 import { formatINR, calculateGSTBreakdown } from "@/lib/format";
 import {
   ShoppingCart,
   Plus,
   Trash2,
-  Printer,
   ArrowLeft,
   Building,
   CreditCard,
+  UserPlus,
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
@@ -39,6 +40,10 @@ export default function NewSalePage() {
   const [company, setCompany] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // Customer Modal State
+  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
 
   // Form Fields
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -67,8 +72,7 @@ export default function NewSalePage() {
 
         if (custJson.success) {
           setCustomers(custJson.data);
-          // Default to first customer (or walk-in)
-          if (custJson.data.length > 0) {
+          if (custJson.data.length > 0 && !selectedCustomerId) {
             setSelectedCustomerId(custJson.data[0].id);
           }
         }
@@ -148,6 +152,8 @@ export default function NewSalePage() {
     grandTotal += breakdown.totalAmount;
   });
 
+  const balanceDue = Math.max(0, Math.round((grandTotal - paidAmount) * 100) / 100);
+
   // Keep paidAmount synced with grandTotal by default if mode is CASH/UPI
   const handlePaymentModeChange = (mode: string) => {
     setPaymentMode(mode);
@@ -158,15 +164,35 @@ export default function NewSalePage() {
     }
   };
 
+  // Callback when a new customer is saved via modal
+  const handleCustomerCreated = (newCustomer: any) => {
+    setCustomers((prev) => [newCustomer, ...prev]);
+    setSelectedCustomerId(newCustomer.id);
+    // Notice: cart remains completely intact!
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
+
     if (!selectedCustomerId) {
-      alert("Please select a customer");
+      setErrorMessage("Please select an existing customer or add a new customer.");
       return;
     }
     if (cart.length === 0) {
-      alert("Please add at least one product to billing cart");
+      setErrorMessage("Please add at least one material/product to the billing cart.");
       return;
+    }
+
+    for (const item of cart) {
+      if (!item.quantity || item.quantity <= 0) {
+        setErrorMessage(`Invalid quantity for "${item.name}". Quantity must be greater than 0.`);
+        return;
+      }
+      if (item.rate < 0) {
+        setErrorMessage(`Invalid rate for "${item.name}". Rate cannot be negative.`);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -178,13 +204,13 @@ export default function NewSalePage() {
           customerId: selectedCustomerId,
           items: cart.map((item) => ({
             productId: item.productId,
-            quantity: item.quantity,
-            rate: item.rate,
-            discountPercent: item.discountPercent,
-            gstRate: item.gstRate,
+            quantity: Number(item.quantity),
+            rate: Number(item.rate),
+            discountPercent: Number(item.discountPercent) || 0,
+            gstRate: Number(item.gstRate),
           })),
           paymentMode,
-          paidAmount,
+          paidAmount: Number(paidAmount) || 0,
           isInterState,
           notes,
         }),
@@ -192,15 +218,19 @@ export default function NewSalePage() {
 
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Failed to generate invoice");
+        setErrorMessage(data.error || "Failed to generate invoice.");
         setSubmitting(false);
         return;
       }
 
-      // Show immediate printable invoice modal
+      // Success: Show printable tax invoice modal
       setCreatedInvoice(data.data);
+      // Reset form draft
+      setCart([]);
+      setNotes("");
     } catch {
-      alert("Network error creating invoice");
+      setErrorMessage("Network error creating invoice. Please try again.");
+    } finally {
       setSubmitting(false);
     }
   };
@@ -234,36 +264,44 @@ export default function NewSalePage() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <div>
-              <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-                <ShoppingCart className="h-6 w-6 text-orange-600" />
-                <span>Fast Sales Billing Counter</span>
+              <h1 className="text-xl md:text-2xl font-black tracking-tight text-[#24282c] flex items-center gap-2">
+                <ShoppingCart className="h-6 w-6 text-[#e16718]" />
+                <span>New Sales Billing (POS)</span>
               </h1>
               <p className="text-xs text-slate-500">
-                Express point-of-sale invoicing & real-time inventory deduction
+                Express counter billing with instant customer creation & live stock deduction
               </p>
             </div>
           </div>
         </div>
 
+        {/* Global Error Banner */}
+        {errorMessage && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-700 flex items-center gap-2.5">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+            <span className="font-semibold">{errorMessage}</span>
+          </div>
+        )}
+
         {/* Sales Grid Form */}
         <form onSubmit={handleFormSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column: Customer & Cart (2 columns on large screen) */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Customer Card */}
+            {/* Customer Selection Card */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <Building className="h-4 w-4 text-orange-600" />
-                  <span>1. Select Customer / Party</span>
+                  <Building className="h-4 w-4 text-[#e16718]" />
+                  <span>1. Customer Selection</span>
                 </h3>
                 {selectedCustomer && (
                   <span className="text-xs">
-                    Current Outstanding:{" "}
+                    Current Balance Due:{" "}
                     <strong
                       className={
                         selectedCustomer.currentBalance > 0
-                          ? "text-rose-600"
-                          : "text-emerald-600"
+                          ? "text-rose-600 font-mono"
+                          : "text-emerald-600 font-mono"
                       }
                     >
                       {formatINR(selectedCustomer.currentBalance)}
@@ -272,27 +310,63 @@ export default function NewSalePage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <SearchableSelect
-                    label="Customer Name"
-                    placeholder="Search customer by name or phone..."
-                    options={customerOptions}
-                    value={selectedCustomerId}
-                    onChange={(val) => setSelectedCustomerId(val)}
-                    required
-                  />
+              {/* Customer Selector with Prominent "+ New Customer" button */}
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-2.5">
+                  <div className="flex-1">
+                    <SearchableSelect
+                      label="Select Existing Customer"
+                      placeholder="Search customer by name or mobile number..."
+                      options={customerOptions}
+                      value={selectedCustomerId}
+                      onChange={(val) => setSelectedCustomerId(val)}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCustomerModal(true)}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-[#e16718] bg-orange-50/70 hover:bg-orange-100/70 px-4 py-2 text-xs font-bold text-[#e16718] transition-all cursor-pointer h-10 shrink-0 active:scale-95"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span>+ New Customer</span>
+                  </button>
                 </div>
 
-                <div className="flex items-center gap-2 pt-6">
+                {/* Selected Customer Details Chip */}
+                {selectedCustomer && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                    <div>
+                      <strong className="text-slate-800">{selectedCustomer.name}</strong>
+                    </div>
+                    <div>
+                      <span>Mobile: </span>
+                      <strong className="font-mono text-slate-800">{selectedCustomer.mobile}</strong>
+                    </div>
+                    {selectedCustomer.gstin && (
+                      <div>
+                        <span>GSTIN: </span>
+                        <strong className="font-mono text-slate-800">{selectedCustomer.gstin}</strong>
+                      </div>
+                    )}
+                    {selectedCustomer.city && (
+                      <div>
+                        <span>Location: </span>
+                        <span>{selectedCustomer.city}, {selectedCustomer.state}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="pt-1">
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700">
                     <input
                       type="checkbox"
                       checked={isInterState}
                       onChange={(e) => setIsInterState(e.target.checked)}
-                      className="rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-4 w-4"
+                      className="rounded border-slate-300 text-[#e16718] focus:ring-[#e16718] h-4 w-4"
                     />
-                    <span>Inter-State Supply (IGST instead of CGST+SGST)</span>
+                    <span>Inter-State Supply (Apply IGST instead of CGST + SGST)</span>
                   </label>
                 </div>
               </div>
@@ -302,8 +376,8 @@ export default function NewSalePage() {
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <Plus className="h-4 w-4 text-orange-600" />
-                  <span>2. Add Materials & Products</span>
+                  <Plus className="h-4 w-4 text-[#e16718]" />
+                  <span>2. Add Materials & Hardware Products</span>
                 </h3>
                 <span className="text-xs text-slate-500 font-medium">
                   {cart.length} item(s) in billing cart
@@ -313,7 +387,7 @@ export default function NewSalePage() {
               {/* Fast Product Selector */}
               <div>
                 <SearchableSelect
-                  placeholder="Scan barcode or type product name / SKU (e.g. UltraTech, Tata Tiscon)..."
+                  placeholder="Search and add product by name or SKU (e.g. UltraTech Cement, Tata Tiscon TMT)..."
                   options={productOptions}
                   value=""
                   onChange={(val) => handleAddProductToCart(val)}
@@ -328,19 +402,20 @@ export default function NewSalePage() {
                       <th className="px-3 py-2 w-8">#</th>
                       <th className="px-3 py-2 min-w-[160px]">Product / Material</th>
                       <th className="px-2 py-2 text-right w-20">Stock</th>
-                      <th className="px-2 py-2 text-right w-24">Qty</th>
-                      <th className="px-2 py-2 text-right w-24">Rate (₹)</th>
-                      <th className="px-2 py-2 text-right w-16">Disc %</th>
-                      <th className="px-2 py-2 text-center w-16">GST %</th>
-                      <th className="px-3 py-2 text-right w-24">Total (₹)</th>
-                      <th className="px-2 py-2 text-center w-8"></th>
+                      <th className="px-2 py-2 text-center w-24">Qty</th>
+                      <th className="px-2 py-2 text-right w-28">Rate (₹)</th>
+                      <th className="px-2 py-2 text-center w-20">Disc (%)</th>
+                      <th className="px-2 py-2 text-center w-16">GST</th>
+                      <th className="px-3 py-2 text-right w-28">Total (₹)</th>
+                      <th className="px-2 py-2 text-center w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-800">
+                  <tbody className="divide-y divide-slate-100">
                     {cart.length === 0 ? (
                       <tr>
                         <td colSpan={9} className="py-8 text-center text-slate-400">
-                          Select products from dropdown above to add items to invoice.
+                          <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-40 text-slate-400" />
+                          No items added yet. Search products above to add to bill.
                         </td>
                       </tr>
                     ) : (
@@ -353,69 +428,59 @@ export default function NewSalePage() {
                           isInterState,
                         });
 
-                        const isLowStock = item.currentStock < item.quantity;
-
                         return (
                           <tr key={item.productId} className="hover:bg-slate-50/50">
-                            <td className="px-3 py-2 text-center text-slate-400">
-                              {idx + 1}
-                            </td>
+                            <td className="px-3 py-2 text-slate-400">{idx + 1}</td>
                             <td className="px-3 py-2">
-                              <span className="font-bold text-slate-900 block">
-                                {item.name}
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                SKU: {item.sku} • {item.unit}
+                              <span className="font-bold text-slate-800 block">{item.name}</span>
+                              <span className="text-[10px] font-mono text-slate-400">
+                                SKU: {item.sku}
                               </span>
                             </td>
-                            <td className="px-2 py-2 text-right">
+                            <td className="px-2 py-2 text-right font-mono">
                               <span
-                                className={`text-[11px] font-bold font-mono ${
-                                  isLowStock ? "text-rose-600" : "text-slate-600"
+                                className={`font-semibold ${
+                                  item.currentStock <= 5 ? "text-rose-600" : "text-slate-600"
                                 }`}
                               >
-                                {item.currentStock}
+                                {item.currentStock} {item.unit}
                               </span>
                             </td>
-                            <td className="px-2 py-2 text-right">
+                            <td className="px-2 py-2">
                               <input
                                 type="number"
-                                min="0.1"
+                                min="0.01"
                                 step="any"
-                                required
                                 value={item.quantity}
                                 onChange={(e) =>
                                   updateCartItem(idx, "quantity", Number(e.target.value))
                                 }
-                                className="h-7 w-20 rounded border border-slate-200 px-1.5 text-right font-bold focus:border-orange-500 focus:outline-hidden"
+                                className="h-8 w-full rounded border border-slate-200 px-2 text-center font-mono font-semibold focus:border-[#e16718] focus:outline-hidden"
                               />
                             </td>
-                            <td className="px-2 py-2 text-right">
+                            <td className="px-2 py-2">
                               <input
                                 type="number"
+                                min="0"
                                 step="0.01"
-                                required
                                 value={item.rate}
                                 onChange={(e) =>
                                   updateCartItem(idx, "rate", Number(e.target.value))
                                 }
-                                className="h-7 w-20 rounded border border-slate-200 px-1.5 text-right font-mono focus:border-orange-500 focus:outline-hidden"
+                                className="h-8 w-full rounded border border-slate-200 px-2 text-right font-mono focus:border-[#e16718] focus:outline-hidden"
                               />
                             </td>
-                            <td className="px-2 py-2 text-right">
+                            <td className="px-2 py-2">
                               <input
                                 type="number"
                                 min="0"
                                 max="100"
+                                step="0.5"
                                 value={item.discountPercent}
                                 onChange={(e) =>
-                                  updateCartItem(
-                                    idx,
-                                    "discountPercent",
-                                    Number(e.target.value)
-                                  )
+                                  updateCartItem(idx, "discountPercent", Number(e.target.value))
                                 }
-                                className="h-7 w-14 rounded border border-slate-200 px-1.5 text-right font-mono focus:border-orange-500 focus:outline-hidden"
+                                className="h-8 w-full rounded border border-slate-200 px-2 text-center font-mono focus:border-[#e16718] focus:outline-hidden"
                               />
                             </td>
                             <td className="px-2 py-2 text-center">
@@ -430,7 +495,7 @@ export default function NewSalePage() {
                               <button
                                 type="button"
                                 onClick={() => removeCartItem(idx)}
-                                className="rounded p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                                className="rounded p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -449,14 +514,14 @@ export default function NewSalePage() {
           <div className="space-y-4">
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2 flex items-center gap-1.5">
-                <CreditCard className="h-4 w-4 text-orange-600" />
-                <span>3. Tax & Payment Summary</span>
+                <CreditCard className="h-4 w-4 text-[#e16718]" />
+                <span>3. Billing Summary & Payment</span>
               </h3>
 
               {/* Numerical Breakdown */}
               <div className="space-y-2 text-xs divide-y divide-slate-100">
                 <div className="flex justify-between py-1">
-                  <span className="text-slate-500">Subtotal:</span>
+                  <span className="text-slate-500">Items Subtotal:</span>
                   <span className="font-mono font-medium">{formatINR(subtotal)}</span>
                 </div>
                 {totalDiscount > 0 && (
@@ -469,34 +534,61 @@ export default function NewSalePage() {
                   <span className="text-slate-500">Taxable Value:</span>
                   <span className="font-mono font-medium">{formatINR(taxableAmount)}</span>
                 </div>
-                <div className="flex justify-between py-1 text-orange-600">
-                  <span>Total GST Tax:</span>
+                <div className="flex justify-between py-1 text-[#e16718]">
+                  <span>GST Tax Breakdown:</span>
                   <span className="font-mono font-semibold">+{formatINR(totalTax)}</span>
                 </div>
-                <div className="flex justify-between py-2 text-base font-black text-slate-900 border-t-2 border-slate-900">
-                  <span>Grand Total:</span>
-                  <span className="text-orange-600 font-mono">{formatINR(grandTotal)}</span>
+              </div>
+
+              {/* Clearly Distinguished Total, Amount Paid & Balance Due */}
+              <div className="space-y-2 pt-2 border-t-2 border-slate-900">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-orange-50/70 border border-orange-200">
+                  <span className="text-xs font-bold text-slate-800">Total Amount:</span>
+                  <span className="text-lg font-black text-[#e16718] font-mono">
+                    {formatINR(grandTotal)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-50/70 border border-emerald-200">
+                  <span className="text-xs font-semibold text-emerald-900">Amount Paid:</span>
+                  <span className="text-sm font-bold text-emerald-700 font-mono">
+                    {formatINR(paidAmount)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-rose-50/70 border border-rose-200">
+                  <span className="text-xs font-semibold text-rose-900">Balance Due:</span>
+                  <span className="text-sm font-bold text-rose-700 font-mono">
+                    {formatINR(balanceDue)}
+                  </span>
                 </div>
               </div>
 
               {/* Payment Mode Selection */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
                 <label className="block text-xs font-semibold text-slate-700">
-                  Payment Mode
+                  Payment Method
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {["CASH", "UPI", "BANK_TRANSFER", "CREDIT"].map((mode) => (
+                  {[
+                    { id: "CASH", label: "Cash" },
+                    { id: "UPI", label: "UPI / QR" },
+                    { id: "BANK_TRANSFER", label: "Bank Transfer" },
+                    { id: "CREDIT", label: "Credit (Udhar)" },
+                    { id: "CHEQUE", label: "Cheque" },
+                    { id: "NEFT_RTGS", label: "NEFT / RTGS" },
+                  ].map((mode) => (
                     <button
-                      key={mode}
+                      key={mode.id}
                       type="button"
-                      onClick={() => handlePaymentModeChange(mode)}
-                      className={`rounded-lg border p-2 text-xs font-semibold transition-all ${
-                        paymentMode === mode
-                          ? "border-orange-500 bg-orange-50 text-orange-800"
+                      onClick={() => handlePaymentModeChange(mode.id)}
+                      className={`rounded-lg border p-2 text-xs font-bold transition-all cursor-pointer ${
+                        paymentMode === mode.id
+                          ? "border-[#e16718] bg-orange-50 text-[#e16718]"
                           : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      {mode === "BANK_TRANSFER" ? "Bank Transfer" : mode}
+                      {mode.label}
                     </button>
                   ))}
                 </div>
@@ -504,56 +596,53 @@ export default function NewSalePage() {
 
               {/* Paid Amount Input */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Amount Collected Now (₹)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(Number(e.target.value))}
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-bold font-mono text-emerald-600 focus:border-orange-500 focus:outline-hidden"
-                />
-                <div className="flex justify-between text-[11px] text-slate-500 mt-1">
-                  <span>
-                    Balance on Credit:{" "}
-                    <strong className="text-rose-600 font-mono">
-                      {formatINR(Math.max(0, grandTotal - paidAmount))}
-                    </strong>
-                  </span>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Amount Received Now (₹)
+                  </label>
                   <button
                     type="button"
                     onClick={() => setPaidAmount(grandTotal)}
-                    className="text-orange-600 hover:underline"
+                    className="text-[11px] font-bold text-[#e16718] hover:underline cursor-pointer"
                   >
                     Full Payment
                   </button>
                 </div>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(Number(e.target.value))}
+                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-base font-bold font-mono text-emerald-700 focus:border-[#e16718] focus:outline-hidden"
+                />
               </div>
 
               {/* Notes */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Invoice Notes (Optional)
+                  Billing Notes / Vehicle No.
                 </label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="e.g. Delivered to Site Baner, Vehicle MH-12-AB-1234"
-                  className="h-8 w-full rounded-lg border border-slate-200 px-3 text-xs focus:border-orange-500 focus:outline-hidden"
+                  className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs focus:border-[#e16718] focus:outline-hidden"
                 />
               </div>
 
-              {/* Generate Invoice Button */}
+              {/* Generate Invoice Submit Button */}
               <button
                 type="submit"
                 disabled={submitting || cart.length === 0}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 text-sm font-black text-white shadow-lg shadow-orange-600/30 hover:bg-orange-500 transition-all disabled:opacity-50"
+                className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#e16718] p-3 text-sm font-bold text-white shadow-lg shadow-orange-600/20 hover:bg-[#c9550e] transition-all disabled:opacity-50 cursor-pointer active:scale-98"
               >
                 <CheckCircle2 className="h-5 w-5" />
                 <span>
-                  {submitting ? "Processing..." : `Generate Invoice (${formatINR(grandTotal)})`}
+                  {submitting
+                    ? "Generating Invoice..."
+                    : `Confirm Sale & Print (${formatINR(grandTotal)})`}
                 </span>
               </button>
             </div>
@@ -561,15 +650,20 @@ export default function NewSalePage() {
         </form>
       </div>
 
-      {/* Instant Print Invoice Modal */}
+      {/* New Customer Modal */}
+      <NewCustomerModal
+        isOpen={showNewCustomerModal}
+        onClose={() => setShowNewCustomerModal(false)}
+        onCustomerCreated={handleCustomerCreated}
+        existingCustomers={customers}
+      />
+
+      {/* Printable Invoice Modal */}
       {createdInvoice && (
         <PrintableInvoice
           sale={createdInvoice}
           company={company}
-          onClose={() => {
-            setCreatedInvoice(null);
-            router.push("/sales");
-          }}
+          onClose={() => setCreatedInvoice(null)}
         />
       )}
     </AppLayout>

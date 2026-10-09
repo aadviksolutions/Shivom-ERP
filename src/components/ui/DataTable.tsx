@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Download, Filter } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Download } from "lucide-react";
 
 export interface Column<T> {
   header: string;

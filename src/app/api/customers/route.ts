@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       name,
       contactPerson,
       mobile,
+      altMobile,
       whatsapp,
       email,
       address,
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
       state = "Maharashtra",
       stateCode = "27",
       pincode,
+      customerType,
       gstin,
       pan,
       creditLimit = 0,
@@ -59,35 +61,92 @@ export async function POST(request: Request) {
       notes,
     } = body;
 
-    if (!name || !mobile) {
+    if (!name?.trim()) {
       return NextResponse.json(
-        { error: "Customer name and mobile number are required" },
+        { error: "Customer name is mandatory." },
         { status: 400 }
+      );
+    }
+
+    if (!mobile?.trim()) {
+      return NextResponse.json(
+        { error: "Mobile number is mandatory." },
+        { status: 400 }
+      );
+    }
+
+    // Clean and validate Indian 10-digit mobile number
+    let cleanMobile = mobile.trim().replace(/\D/g, "");
+    if (cleanMobile.length === 12 && cleanMobile.startsWith("91")) {
+      cleanMobile = cleanMobile.slice(2);
+    }
+    if (cleanMobile.length !== 10 || !/^[6-9]/.test(cleanMobile)) {
+      return NextResponse.json(
+        { error: "Please enter a valid 10-digit Indian mobile number (e.g. 98200 12345)." },
+        { status: 400 }
+      );
+    }
+
+    // Validate GSTIN if provided
+    const cleanGstin = gstin?.trim().toUpperCase() || null;
+    if (cleanGstin) {
+      const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstinRegex.test(cleanGstin)) {
+        return NextResponse.json(
+          { error: "Invalid GSTIN format. Standard 15-character format required (e.g. 27AABCS1429B1Z8)." },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check for duplicate customer by mobile number
+    const existing = await prisma.customer.findFirst({
+      where: {
+        mobile: cleanMobile,
+        isActive: true,
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        {
+          error: `A customer with mobile number ${cleanMobile} already exists: "${existing.name}".`,
+          existingCustomer: existing,
+        },
+        { status: 409 }
       );
     }
 
     const ob = Number(openingBalance) || 0;
 
+    let combinedNotes = notes?.trim() || "";
+    if (customerType) {
+      combinedNotes = combinedNotes
+        ? `[Type: ${customerType}] ${combinedNotes}`
+        : `[Type: ${customerType}]`;
+    }
+
     const customer = await prisma.customer.create({
       data: {
         name: name.trim(),
         contactPerson: contactPerson?.trim() || null,
-        mobile: mobile.trim(),
-        whatsapp: whatsapp?.trim() || mobile.trim(),
+        mobile: cleanMobile,
+        phone: altMobile?.trim() || null,
+        whatsapp: whatsapp?.trim() || cleanMobile,
         email: email?.trim() || null,
         address: address?.trim() || null,
         city: city?.trim() || "Pune",
         state: state?.trim() || "Maharashtra",
         stateCode: stateCode?.trim() || "27",
         pincode: pincode?.trim() || null,
-        gstin: gstin?.trim().toUpperCase() || null,
-        pan: pan?.trim().toUpperCase() || null,
+        gstin: cleanGstin,
+        pan: pan?.trim().toUpperCase() || (cleanGstin ? cleanGstin.substring(2, 12) : null),
         creditLimit: Number(creditLimit) || 0,
         openingBalance: ob,
         currentBalance: ob,
         totalSales: ob,
         totalPaid: 0,
-        notes: notes?.trim() || null,
+        notes: combinedNotes || null,
       },
     });
 

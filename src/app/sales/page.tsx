@@ -7,7 +7,7 @@ import DataTable, { Column } from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
 import PrintableInvoice from "@/components/invoice/PrintableInvoice";
 import { formatINR, formatDate } from "@/lib/format";
-import { Plus, ShoppingCart, Eye, Printer, RefreshCw, FileText } from "lucide-react";
+import { Plus, ShoppingCart, Printer, RefreshCw } from "lucide-react";
 
 interface Sale {
   id: string;

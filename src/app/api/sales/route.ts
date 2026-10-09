@@ -57,6 +57,7 @@ export async function POST(request: Request) {
       notes,
       terms,
       warehouseId,
+      quotationId,
     } = body;
 
     if (!customerId || !items || !Array.isArray(items) || items.length === 0) {
@@ -64,6 +65,25 @@ export async function POST(request: Request) {
         { error: "Customer and at least one item are required" },
         { status: 400 }
       );
+    }
+
+    // If quotationId is provided, verify it hasn't already been converted
+    if (quotationId) {
+      const existingQuotation = await prisma.quotation.findUnique({
+        where: { id: quotationId },
+      });
+      if (!existingQuotation) {
+        return NextResponse.json(
+          { error: "Referenced quotation could not be found" },
+          { status: 404 }
+        );
+      }
+      if (existingQuotation.status === "CONVERTED") {
+        return NextResponse.json(
+          { error: "This quotation has already been converted into an invoice." },
+          { status: 400 }
+        );
+      }
     }
 
     // 1. Fetch Company Settings
@@ -211,6 +231,7 @@ export async function POST(request: Request) {
           balanceAmount: balance,
           notes: notes?.trim() || null,
           terms: terms?.trim() || company.invoiceTerms,
+          quotationId: quotationId || null,
           createdById: user?.id,
           items: {
             create: saleItemsData,
@@ -221,6 +242,14 @@ export async function POST(request: Request) {
           items: { include: { product: true } },
         },
       });
+
+      // If created from a quotation, mark quotation status as CONVERTED
+      if (quotationId) {
+        await tx.quotation.update({
+          where: { id: quotationId },
+          data: { status: "CONVERTED" },
+        });
+      }
 
       // Update Inventory & Record Movements
       for (const update of stockUpdates) {

@@ -7,8 +7,9 @@ export async function GET() {
   try {
     const company = await prisma.company.findFirst() || await prisma.company.create({
       data: {
-        name: "BuildStock ERP",
-        legalName: "Shivom Construction & Hardware Supplies",
+        name: "Shivom Construction",
+        legalName: "Shivom Construction",
+        logoUrl: "/images/shivom-logo.png",
       },
     });
 

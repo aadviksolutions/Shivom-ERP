@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import DataTable, { Column } from "@/components/ui/DataTable";
 import { formatINR, formatDate } from "@/lib/format";
-import { TrendingUp, Printer } from "lucide-react";
+import { TrendingUp, Printer, Download } from "lucide-react";
+import { exportToCSV } from "@/lib/export";
 
 export default function SalesReportPage() {
   const [sales, setSales] = useState<any[]>([]);
@@ -65,6 +66,20 @@ export default function SalesReportPage() {
     },
   ];
 
+  const handleExportCSV = () => {
+    const headers = ["Invoice #", "Date", "Customer", "Payment Mode", "Taxable Amount (₹)", "GST Tax (₹)", "Grand Total (₹)"];
+    const rows = sales.map((s) => [
+      s.invoiceNumber,
+      formatDate(s.date),
+      s.customer?.name || "Cash Customer",
+      s.paymentMode,
+      s.taxableAmount,
+      s.taxAmount,
+      s.grandTotal,
+    ]);
+    exportToCSV(`Sales_Report_${new Date().toISOString().split("T")[0]}`, headers, rows);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -79,11 +94,22 @@ export default function SalesReportPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <div className="rounded-lg bg-white border border-slate-200 px-3 py-1.5 shadow-xs text-right">
               <p className="text-[10px] uppercase font-bold text-slate-400">Total Billed</p>
               <p className="text-sm font-black text-orange-600 font-mono">{formatINR(totalSales)}</p>
             </div>
+            <div className="rounded-lg bg-white border border-slate-200 px-3 py-1.5 shadow-xs text-right">
+              <p className="text-[10px] uppercase font-bold text-slate-400">Total GST</p>
+              <p className="text-sm font-black text-slate-800 font-mono">{formatINR(totalTax)}</p>
+            </div>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+            >
+              <Download className="h-4 w-4 text-slate-600" />
+              <span>Export CSV</span>
+            </button>
             <button
               onClick={() => window.print()}
               className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-orange-500 shadow-md shadow-orange-600/20"

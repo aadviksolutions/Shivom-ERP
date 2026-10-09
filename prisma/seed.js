@@ -13,11 +13,12 @@ async function main() {
     update: {},
     create: {
       id: 'default-company',
-      name: 'BuildStock ERP',
-      legalName: 'Shivom Construction & Hardware Supplies Pvt Ltd',
+      name: 'Shivom Construction',
+      legalName: 'Shivom Construction',
       gstin: '27AABCS1429B1Z8',
       pan: 'AABCS1429B',
-      email: 'sales@buildstockerp.com',
+      logoUrl: '/images/shivom-logo.png',
+      email: 'contact@shivomconstruction.com',
       phone: '+91 98200 12345',
       altPhone: '+91 98200 67890',
       address: 'Plot No. 42, Industrial Area, Ring Road Phase 2',
@@ -95,6 +96,42 @@ async function main() {
     create: {
       name: 'Store Manager',
       email: 'store@buildstock.com',
+      passwordHash: storeHash,
+      role: 'STORE',
+      phone: '9820033333',
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'admin@shivomconstruction.com' },
+    update: {},
+    create: {
+      name: 'Owner Admin',
+      email: 'admin@shivomconstruction.com',
+      passwordHash,
+      role: 'ADMIN',
+      phone: '9820011111',
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'billing@shivomconstruction.com' },
+    update: {},
+    create: {
+      name: 'Billing Desk',
+      email: 'billing@shivomconstruction.com',
+      passwordHash: billingHash,
+      role: 'BILLING',
+      phone: '9820022222',
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'store@shivomconstruction.com' },
+    update: {},
+    create: {
+      name: 'Store Manager',
+      email: 'store@shivomconstruction.com',
       passwordHash: storeHash,
       role: 'STORE',
       phone: '9820033333',

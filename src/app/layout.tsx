@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BuildStock ERP | Construction & Hardware Materials",
-  description: "Professional, fast, intuitive ERP for Construction & Hardware Material Suppliers",
+  title: "Shivom Construction | Building Material Supply",
+  description: "Professional, fast, intuitive ERP for Shivom Construction - Building Material Supply",
+  manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/images/shivom-logo.png",
+    apple: "/images/shivom-logo.png",
   },
+  themeColor: "#e16718",
 };
 
 export default function RootLayout({

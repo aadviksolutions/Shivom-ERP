@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
-  ShoppingCart,
   Users,
   Menu,
   Plus,
@@ -39,11 +38,11 @@ export default function MobileNav({ onOpenSidebar }: MobileNavProps) {
                 href={link.href}
                 className="flex -mt-5 flex-col items-center justify-center"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-600 text-white shadow-lg shadow-orange-600/40 hover:bg-orange-500 transition-transform active:scale-95">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e16718] text-white shadow-lg shadow-orange-600/30 hover:bg-[#c9550e] transition-transform active:scale-95">
                   <Plus className="h-6 w-6 stroke-[2.5]" />
                 </div>
-                <span className="text-[10px] font-semibold text-orange-600 mt-0.5">
-                  Sale
+                <span className="text-[10px] font-bold text-[#e16718] mt-0.5">
+                  Billing
                 </span>
               </Link>
             );
@@ -54,10 +53,10 @@ export default function MobileNav({ onOpenSidebar }: MobileNavProps) {
               key={link.title}
               href={link.href}
               className={`flex flex-col items-center justify-center py-1 px-2 text-[10px] font-medium transition-colors ${
-                isActive ? "text-orange-600 font-semibold" : "text-slate-500 hover:text-slate-900"
+                isActive ? "text-[#e16718] font-bold" : "text-slate-500 hover:text-slate-900"
               }`}
             >
-              <link.icon className={`h-5 w-5 ${isActive ? "text-orange-600" : "text-slate-500"}`} />
+              <link.icon className={`h-5 w-5 ${isActive ? "text-[#e16718]" : "text-slate-500"}`} />
               <span className="mt-0.5">{link.title}</span>
             </Link>
           );

@@ -15,7 +15,6 @@ import {
   LogOut,
   ShieldCheck,
   ChevronDown,
-  Building,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -30,7 +29,7 @@ interface HeaderProps {
 
 export default function Header({
   onToggleSidebar,
-  currentUser = { name: "Owner Admin", email: "admin@buildstock.com", role: "ADMIN" },
+  currentUser = { name: "Owner Admin", email: "admin@shivomconstruction.com", role: "ADMIN" },
   lowStockCount = 0,
 }: HeaderProps) {
   const router = useRouter();
@@ -75,10 +74,15 @@ export default function Header({
 
         {/* Brand indicator for mobile */}
         <div className="flex items-center gap-2 lg:hidden">
-          <div className="h-8 w-8 rounded-md bg-orange-600 flex items-center justify-center text-white font-bold text-sm">
-            BS
+          <div className="h-8 w-8 rounded-lg bg-white p-0.5 border border-slate-200 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/shivom-logo.png"
+              alt="Shivom Construction Logo"
+              className="h-6 w-auto object-contain"
+            />
           </div>
-          <span className="font-bold text-slate-800 text-sm">BuildStock</span>
+          <span className="font-bold text-slate-900 text-xs tracking-tight">Shivom Construction</span>
         </div>
 
         {/* Global Quick Search */}

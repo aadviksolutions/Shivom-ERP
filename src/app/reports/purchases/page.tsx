@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import DataTable, { Column } from "@/components/ui/DataTable";
 import { formatINR, formatDate } from "@/lib/format";
-import { BarChart3, Printer } from "lucide-react";
+import { BarChart3, Printer, Download } from "lucide-react";
+import { exportToCSV } from "@/lib/export";
 
 export default function PurchasesReportPage() {
   const [purchases, setPurchases] = useState<any[]>([]);
@@ -55,6 +56,19 @@ export default function PurchasesReportPage() {
     },
   ];
 
+  const handleExportCSV = () => {
+    const headers = ["PO #", "Date", "Supplier", "Taxable (₹)", "Tax (₹)", "Total Bill (₹)"];
+    const rows = purchases.map((p) => [
+      p.purchaseNumber,
+      formatDate(p.date),
+      p.supplier?.name || "Supplier",
+      p.taxableAmount,
+      p.taxAmount,
+      p.grandTotal,
+    ]);
+    exportToCSV(`Purchase_Report_${new Date().toISOString().split("T")[0]}`, headers, rows);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -69,11 +83,18 @@ export default function PurchasesReportPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <div className="rounded-lg bg-white border border-slate-200 px-3 py-1.5 shadow-xs text-right">
               <p className="text-[10px] uppercase font-bold text-slate-400">Total Purchases</p>
               <p className="text-sm font-black text-blue-600 font-mono">{formatINR(totalPurchase)}</p>
             </div>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+            >
+              <Download className="h-4 w-4 text-slate-600" />
+              <span>Export CSV</span>
+            </button>
             <button
               onClick={() => window.print()}
               className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-blue-500 shadow-md shadow-blue-600/20"

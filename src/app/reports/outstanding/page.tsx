@@ -4,16 +4,17 @@ import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import DataTable, { Column } from "@/components/ui/DataTable";
 import { formatINR } from "@/lib/format";
-import { DollarSign, Printer, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { DollarSign, Printer, ArrowDownLeft, ArrowUpRight, Download, RefreshCw } from "lucide-react";
+import { exportToCSV } from "@/lib/export";
 
 export default function OutstandingReportPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
+  const loadData = async () => {
+    setLoading(true);
+    try {
       const [cRes, sRes] = await Promise.all([
         fetch("/api/customers"),
         fetch("/api/suppliers"),
@@ -22,9 +23,15 @@ export default function OutstandingReportPage() {
       const sJson = await sRes.json();
       if (cJson.success) setCustomers(cJson.data.filter((c: any) => c.currentBalance > 0));
       if (sJson.success) setSuppliers(sJson.data.filter((s: any) => s.currentBalance > 0));
+    } catch (e) {
+      console.error(e);
+    } finally {
       setLoading(false);
     }
-    load();
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const totalReceivable = customers.reduce((acc, c) => acc + c.currentBalance, 0);
@@ -68,6 +75,15 @@ export default function OutstandingReportPage() {
     },
   ];
 
+  const handleExportCSV = () => {
+    const headers = ["Account Type", "Party Name", "Mobile", "Outstanding Balance (₹)"];
+    const rows = [
+      ...customers.map((c) => ["Customer (Debtor)", c.name, c.mobile || "N/A", c.currentBalance]),
+      ...suppliers.map((s) => ["Supplier (Creditor)", s.name, s.mobile || "N/A", s.currentBalance]),
+    ];
+    exportToCSV(`Outstanding_Balances_${new Date().toISOString().split("T")[0]}`, headers, rows);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -82,13 +98,29 @@ export default function OutstandingReportPage() {
             </p>
           </div>
 
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-orange-500 shadow-md shadow-orange-600/20"
-          >
-            <Printer className="h-4 w-4" />
-            <span>Print Report</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+            >
+              <Download className="h-4 w-4 text-slate-600" />
+              <span>Export CSV</span>
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-orange-500 shadow-md shadow-orange-600/20"
+            >
+              <Printer className="h-4 w-4" />
+              <span>Print Report</span>
+            </button>
+            <button
+              onClick={loadData}
+              disabled={loading}
+              className="rounded-lg border border-slate-200 bg-white p-2 text-slate-700 hover:bg-slate-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-orange-600" : ""}`} />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

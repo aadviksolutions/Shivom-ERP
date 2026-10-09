@@ -2,19 +2,21 @@
 
 @layer base {
   :root {
-    --primary: #ea580c; /* Construction Amber / Safety Orange */
-    --primary-hover: #c2410c;
+    --primary: #e16718; /* Shivom Construction Logo Orange */
+    --primary-hover: #c9550e;
     --primary-light: #fff7ed;
-    --navy: #0f172a; /* Solid industrial navy / slate */
-    --navy-light: #1e293b;
+    --charcoal: #24282c; /* Shivom Construction Logo Charcoal */
+    --charcoal-dark: #1a1d1f;
+    --navy: #1a1d1f;
+    --navy-light: #24282c;
     --border-color: #e2e8f0;
     --bg-surface: #ffffff;
-    --bg-muted: #f8fafc;
+    --bg-muted: #f8f9fa;
   }
 
   body {
-    background-color: #f1f5f9;
-    color: #0f172a;
+    background-color: #f8f9fa;
+    color: #24282c;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 }
@@ -68,3 +70,75 @@
     size: A4 portrait;
   }
 }
+
+/* Intro Page Subtle Animations */
+@keyframes fadeInSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes logoPop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes subtleSlowZoom {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-logo-pop {
+  animation: logoPop 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slow-zoom {
+  animation: subtleSlowZoom 25s ease-in-out infinite alternate;
+}
+
+/* Stagger utilities */
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-logo-pop,
+  .animate-slow-zoom {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+

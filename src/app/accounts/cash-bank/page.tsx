@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { formatINR } from "@/lib/format";
-import { Landmark, ArrowDownLeft, ArrowUpRight, DollarSign } from "lucide-react";
+import { Landmark, ArrowDownLeft, DollarSign } from "lucide-react";
 
 export default function CashBankPage() {
   const [company, setCompany] = useState<any>(null);

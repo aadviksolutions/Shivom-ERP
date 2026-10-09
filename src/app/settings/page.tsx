@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import AppLayout from "@/components/layout/AppLayout";
+import Link from "next/link";
 import {
   Settings,
   Building2,
@@ -14,6 +15,9 @@ import {
   Save,
   CheckCircle2,
   Download,
+  ArrowRight,
+  ShieldCheck,
+  UserPlus,
 } from "lucide-react";
 
 function SettingsContent() {
@@ -24,11 +28,11 @@ function SettingsContent() {
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const [company, setCompany] = useState({
-    name: "BuildStock ERP",
-    legalName: "Shivom Construction & Hardware Supplies Pvt Ltd",
+    name: "Shivom Construction",
+    legalName: "Shivom Construction",
     gstin: "27AABCS1429B1Z8",
     pan: "AABCS1429B",
-    email: "sales@buildstockerp.com",
+    email: "contact@shivomconstruction.com",
     phone: "+91 98200 12345",
     altPhone: "+91 98200 67890",
     address: "Plot No. 42, Industrial Area, Ring Road Phase 2",
@@ -93,7 +97,7 @@ function SettingsContent() {
       exportDate: new Date().toISOString(),
       company,
       version: "1.0",
-      notes: "BuildStock ERP complete profile & configuration backup",
+      notes: "Shivom Construction ERP complete profile & configuration backup",
     };
     const blob = new Blob([JSON.stringify(backupData, null, 2)], {
       type: "application/json",
@@ -101,7 +105,7 @@ function SettingsContent() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `buildstock_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `shivom_backup_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
   };
 
@@ -158,6 +162,24 @@ function SettingsContent() {
             <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
               Company Branding & Registration Details
             </h3>
+
+            {/* Logo Display */}
+            <div className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+              <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-lg bg-white p-2 border border-slate-200 shadow-xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/shivom-logo.png"
+                  alt="Shivom Construction Official Logo"
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-800">Company Brand Logo</h4>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Supplied high-resolution identity logo located at <code className="font-mono text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200">public/images/shivom-logo.png</code>. Displayed on sidebar, login screen, and tax invoices.
+                </p>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -283,7 +305,8 @@ function SettingsContent() {
             <div className="flex justify-end pt-4 border-t border-slate-100">
               <button
                 type="submit"
-                className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-500 shadow-sm"
+                disabled={loading}
+                className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-500 shadow-sm disabled:opacity-50"
               >
                 <Save className="h-4 w-4" />
                 <span>Save Profile Changes</span>
@@ -388,52 +411,75 @@ function SettingsContent() {
         )}
 
         {/* Tab 3: Users & Roles */}
+        {/* Tab 3: Users & Roles */}
         {activeTab === "users" && (
-          <div className="space-y-4 max-w-3xl">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-                User Roles & Access Permissions
-              </h3>
-              <p className="text-xs text-slate-500">
-                The ERP is optimized for lean operation with 3 purpose-built roles.
-              </p>
+          <div className="space-y-6 max-w-3xl">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-[#e16718]" />
+                    <span>Owner & Admin User Management</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Configure staff accounts, allocate granular module action rights, and view audit trails.
+                  </p>
+                </div>
+                <Link
+                  href="/settings/users"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#e16718] px-4 py-2 text-xs font-bold text-white shadow-md shadow-orange-600/20 hover:bg-[#c9550e] transition-colors"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>Manage Users & Permissions</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
 
-              <div className="divide-y divide-slate-100 space-y-3">
-                <div className="pt-3 flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-700 font-bold text-xs shrink-0">
-                    AD
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl border border-orange-100 bg-orange-50/50 p-4">
+                  <div className="text-[11px] font-bold text-[#e16718] uppercase tracking-wider mb-1">
+                    Owner / Admin
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">1. Owner / Admin (`admin@buildstock.com`)</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Full system access: Dashboard, Purchases, Sales, Customer & Supplier ledgers, Gross Profit, GST, Settings and Role management.
-                    </p>
-                  </div>
+                  <div className="text-xs font-bold text-slate-900">Unrestricted Control</div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Complete access to billing, inventory, settings, users, and profit reports.
+                  </p>
                 </div>
 
-                <div className="pt-3 flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs shrink-0">
-                    BL
+                <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                  <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wider mb-1">
+                    Sales / Billing
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">2. Sales / Billing (`billing@buildstock.com`)</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Counter sales, POS invoice billing, quotations, customer receivables and collection receipts.
-                    </p>
-                  </div>
+                  <div className="text-xs font-bold text-slate-900">Counter Sales & POS</div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Invoicing, quotations, customer directory, and payment collection receipts.
+                  </p>
                 </div>
 
-                <div className="pt-3 flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs shrink-0">
-                    ST
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+                  <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider mb-1">
+                    Store / Purchase
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">3. Store / Purchase (`store@buildstock.com`)</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Material procurement, goods inward receipts, stock verification, godowns and variance adjustments.
-                    </p>
-                  </div>
+                  <div className="text-xs font-bold text-slate-900">Procurement & Stock</div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Goods inward, purchase orders, godown management, and inventory adjustments.
+                  </p>
                 </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">14-Module Granular Permission Matrix</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Customize View, Create, Edit, Approve, Cancel, Delete, and Export rights for any team member.
+                  </p>
+                </div>
+                <Link
+                  href="/settings/users"
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-xs"
+                >
+                  Open Matrix →
+                </Link>
               </div>
             </div>
           </div>

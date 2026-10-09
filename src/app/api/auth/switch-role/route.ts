@@ -12,14 +12,20 @@ export async function POST(request: Request) {
     }
 
     const emailMap = {
-      ADMIN: "admin@buildstock.com",
-      BILLING: "billing@buildstock.com",
-      STORE: "store@buildstock.com",
+      ADMIN: "admin@shivomconstruction.com",
+      BILLING: "billing@shivomconstruction.com",
+      STORE: "store@shivomconstruction.com",
     };
 
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { email: emailMap[role as Role] },
     });
+
+    if (!user) {
+      user = await prisma.user.findUnique({
+        where: { email: `${role.toLowerCase()}@buildstock.com` },
+      });
+    }
 
     if (user) {
       await setSession({
@@ -36,7 +42,7 @@ export async function POST(request: Request) {
     await setSession({
       id: "active-" + role.toLowerCase(),
       name: role === "ADMIN" ? "Owner Admin" : role === "BILLING" ? "Billing Desk" : "Store Manager",
-      email: `${role.toLowerCase()}@buildstock.com`,
+      email: `${role.toLowerCase()}@shivomconstruction.com`,
       role: role as Role,
     });
 

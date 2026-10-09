@@ -1,8 +1,8 @@
-# BuildStock ERP — Construction & Hardware Supplier System
+# Shivom Construction ERP — Building Material Supply
 
-A fast, modern, and production-ready web-based ERP system built specifically for **Construction & Hardware Material Suppliers**. Designed to be lightweight and intuitive for counter billing staff while maintaining double-entry accounting integrity, atomic inventory decrements, and comprehensive Indian GST compliance.
+A fast, modern, and production-ready web-based ERP system built specifically for **Shivom Construction — Building Material Supply**. Designed to be lightweight and intuitive for counter billing staff while maintaining double-entry accounting integrity, atomic inventory decrements, and comprehensive Indian GST compliance.
 
-![BuildStock ERP](https://raw.githubusercontent.com/aadviksolutions/Shivom-ERP/main/public/file.svg)
+![Shivom Construction ERP](/images/shivom-logo.png)
 
 ---
 
@@ -40,7 +40,7 @@ A fast, modern, and production-ready web-based ERP system built specifically for
 
 - **Framework:** Next.js 16 (App Router, Turbopack)
 - **Language:** TypeScript 5
-- **Styling:** Tailwind CSS v4
+- **Styling:** Tailwind CSS v4 with custom brand tokens (Shivom Construction Orange `#e16718` & Charcoal `#24282c`)
 - **Database:** PostgreSQL (Neon Serverless Cloud)
 - **ORM:** Prisma ORM 6.19
 - **Authentication & Security:** Role-Based Access Control (RBAC), bcryptjs password hashing
@@ -51,9 +51,9 @@ A fast, modern, and production-ready web-based ERP system built specifically for
 
 | Role | Email | Password | Access Scope |
 | :--- | :--- | :--- | :--- |
-| **Owner / Admin** | `admin@buildstock.com` | `admin123` | Full system access, all modules, financial reports, settings, and user management. |
-| **Sales / Billing** | `billing@buildstock.com` | `billing123` | Express POS, quotations, invoices, payments received, customer outstanding, customer ledger. |
-| **Store / Purchase** | `store@buildstock.com` | `store123` | Inventory, products, categories, stock adjustments, godowns, purchase orders, goods inward. |
+| **Owner / Admin** | `admin@shivomconstruction.com` | `admin123` | Full system access, all modules, financial reports, settings, and user management. |
+| **Sales / Billing** | `billing@shivomconstruction.com` | `billing123` | Express POS, quotations, invoices, payments received, customer outstanding, customer ledger. |
+| **Store / Purchase** | `store@shivomconstruction.com` | `store123` | Inventory, products, categories, stock adjustments, godowns, purchase orders, goods inward. |
 
 ---
 
@@ -82,7 +82,7 @@ A fast, modern, and production-ready web-based ERP system built specifically for
    DATABASE_URL="postgresql://user:password@host/neondb?sslmode=require"
    JWT_SECRET="your-secret-key"
    NEXTAUTH_SECRET="your-session-secret"
-   NEXT_PUBLIC_APP_NAME="BuildStock ERP"
+   NEXT_PUBLIC_APP_NAME="Shivom Construction"
    ```
 
 4. **Sync Prisma Database Schema & Seed Data:**
@@ -107,10 +107,10 @@ A fast, modern, and production-ready web-based ERP system built specifically for
    - `DATABASE_URL`: Your PostgreSQL connection string.
    - `JWT_SECRET`: Random 32+ character string.
    - `NEXTAUTH_SECRET`: Random 32+ character string.
-   - `NEXT_PUBLIC_APP_NAME`: `BuildStock ERP`
+   - `NEXT_PUBLIC_APP_NAME`: `Shivom Construction`
 4. Deploy! Vercel automatically runs `prisma generate` during `postinstall` and builds the Next.js production bundle.
 
 ---
 
 ## 📄 License
-Proprietary — Shivom Construction & Hardware Material Supplier.
+Proprietary — Shivom Construction — Building Material Supply.

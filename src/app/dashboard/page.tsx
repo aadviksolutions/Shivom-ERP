@@ -3,25 +3,20 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
-import KpiCard from "@/components/ui/KpiCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import PrintableInvoice from "@/components/invoice/PrintableInvoice";
 import { formatINR, formatDate } from "@/lib/format";
 import {
-  TrendingUp,
   ShoppingCart,
   Truck,
   ArrowDownLeft,
-  ArrowUpRight,
-  Boxes,
   AlertTriangle,
   Plus,
-  UserPlus,
   PackagePlus,
   CreditCard,
   Eye,
-  Building2,
   RefreshCw,
+  FileText,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -57,29 +52,28 @@ export default function DashboardPage() {
   const kpis = data?.kpis || {
     todaySales: 0,
     todaySalesCount: 0,
-    todayPurchase: 0,
-    todayPurchaseCount: 0,
     todayCollection: 0,
     totalReceivable: 0,
-    totalPayable: 0,
-    currentStockValue: 0,
     lowStockCount: 0,
   };
+
+  const lowStockItems = data?.lowStockItems || [];
+  const recentSales = data?.recentSales || [];
 
   return (
     <AppLayout lowStockCount={kpis.lowStockCount}>
       <div className="space-y-6">
         {/* Page Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <span>Owner Dashboard</span>
-              <span className="rounded-md bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-800">
-                {company?.name || "BuildStock ERP"}
+            <h1 className="text-xl md:text-2xl font-black tracking-tight text-[#24282c] flex items-center gap-2">
+              <span>Staff Dashboard</span>
+              <span className="rounded-md bg-orange-100 px-2 py-0.5 text-xs font-bold text-[#e16718]">
+                {company?.name || "Shivom Construction"}
               </span>
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Live financial & inventory operations overview
+              Building Material Supply • Live operations summary
             </p>
           </div>
 
@@ -87,397 +81,272 @@ export default function DashboardPage() {
             <button
               onClick={fetchDashboardData}
               disabled={loading}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-orange-600" : ""}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-[#e16718]" : ""}`} />
               <span>Refresh</span>
             </button>
             <Link
               href="/sales/new"
-              className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-orange-500 transition-colors shadow-md shadow-orange-600/20"
+              className="flex items-center gap-1.5 rounded-lg bg-[#e16718] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#c9550e] transition-colors shadow-sm cursor-pointer"
             >
               <Plus className="h-4 w-4" />
-              <span>New Sale (POS)</span>
+              <span>New Billing</span>
             </Link>
           </div>
         </div>
 
-        {/* Quick Action Tiles */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <Link
-            href="/sales/new"
-            className="flex flex-col items-center justify-center p-3 rounded-xl border border-orange-100 bg-orange-50/70 hover:bg-orange-100/70 text-orange-800 transition-colors text-center shadow-xs"
-          >
-            <ShoppingCart className="h-5 w-5 mb-1.5 text-orange-600" />
-            <span className="text-xs font-bold">New Sale</span>
-            <span className="text-[10px] text-orange-600/80">POS Billing</span>
-          </Link>
-
-          <Link
-            href="/purchase"
-            className="flex flex-col items-center justify-center p-3 rounded-xl border border-blue-100 bg-blue-50/70 hover:bg-blue-100/70 text-blue-800 transition-colors text-center shadow-xs"
-          >
-            <Truck className="h-5 w-5 mb-1.5 text-blue-600" />
-            <span className="text-xs font-bold">New Purchase</span>
-            <span className="text-[10px] text-blue-600/80">Goods Inward</span>
-          </Link>
-
-          <Link
-            href="/customers"
-            className="flex flex-col items-center justify-center p-3 rounded-xl border border-emerald-100 bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-800 transition-colors text-center shadow-xs"
-          >
-            <UserPlus className="h-5 w-5 mb-1.5 text-emerald-600" />
-            <span className="text-xs font-bold">New Customer</span>
-            <span className="text-[10px] text-emerald-600/80">Builder / Party</span>
-          </Link>
-
-          <Link
-            href="/payments?type=CUSTOMER"
-            className="flex flex-col items-center justify-center p-3 rounded-xl border border-purple-100 bg-purple-50/70 hover:bg-purple-100/70 text-purple-800 transition-colors text-center shadow-xs"
-          >
-            <CreditCard className="h-5 w-5 mb-1.5 text-purple-600" />
-            <span className="text-xs font-bold">Receive Payment</span>
-            <span className="text-[10px] text-purple-600/80">Collection</span>
-          </Link>
-
-          <Link
-            href="/products"
-            className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 transition-colors text-center shadow-xs col-span-2 sm:col-span-1"
-          >
-            <PackagePlus className="h-5 w-5 mb-1.5 text-slate-700" />
-            <span className="text-xs font-bold">Add Product</span>
-            <span className="text-[10px] text-slate-500">Hardware item</span>
-          </Link>
-        </div>
-
-        {/* Low Stock Banner Alert */}
-        {kpis.lowStockCount > 0 && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900 shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-amber-200/80 p-2 text-amber-800">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                  Stock Alert: {kpis.lowStockCount} Items Below Reorder Level
-                </h4>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  Items like TMT bars or cement bags require immediate procurement to avoid stockouts.
-                </p>
+        {/* 1. Exactly Four Primary Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Today's Sales */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-600">Today&apos;s Sales</span>
+              <div className="h-9 w-9 rounded-lg bg-orange-50 text-[#e16718] flex items-center justify-center">
+                <ShoppingCart className="h-5 w-5" />
               </div>
             </div>
+            <div className="mt-3">
+              <div className="text-2xl font-black text-[#24282c]">
+                {formatINR(kpis.todaySales)}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                {kpis.todaySalesCount} bill(s) generated today
+              </p>
+            </div>
+          </div>
+
+          {/* Card 2: Today's Collection */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-600">Today&apos;s Collection</span>
+              <div className="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <ArrowDownLeft className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl font-black text-[#24282c]">
+                {formatINR(kpis.todayCollection)}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Cash, UPI & Bank payments received
+              </p>
+            </div>
+          </div>
+
+          {/* Card 3: Customer Outstanding */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-600">Customer Outstanding</span>
+              <div className="h-9 w-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                <CreditCard className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl font-black text-rose-600">
+                {formatINR(kpis.totalReceivable)}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Pending balance due from customers
+              </p>
+            </div>
+          </div>
+
+          {/* Card 4: Low Stock Items */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-600">Low Stock Items</span>
+              <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
+                kpis.lowStockCount > 0 ? "bg-rose-50 text-rose-600" : "bg-slate-100 text-slate-600"
+              }`}>
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl font-black text-[#24282c]">
+                {kpis.lowStockCount} <span className="text-xs font-normal text-slate-500">items</span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                {kpis.lowStockCount > 0 ? "Requires reordering soon" : "Stock levels are healthy"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Clearly Visible Quick Actions Section */}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-3">
+            Quick Actions
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Link
-              href="/inventory/low-stock"
-              className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500 transition-colors shrink-0"
+              href="/sales/new"
+              className="flex items-center gap-3 p-3.5 rounded-xl border border-orange-100 bg-orange-50/70 hover:bg-orange-100/70 text-[#24282c] transition-all cursor-pointer group"
             >
-              Review Low Stock
+              <div className="h-10 w-10 rounded-lg bg-[#e16718] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <ShoppingCart className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="block text-xs font-bold text-[#24282c]">New Billing</span>
+                <span className="block text-[11px] text-slate-500">Create GST Invoice</span>
+              </div>
             </Link>
+
+            <Link
+              href="/purchase"
+              className="flex items-center gap-3 p-3.5 rounded-xl border border-blue-100 bg-blue-50/70 hover:bg-blue-100/70 text-[#24282c] transition-all cursor-pointer group"
+            >
+              <div className="h-10 w-10 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Truck className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="block text-xs font-bold text-[#24282c]">New Purchase</span>
+                <span className="block text-[11px] text-slate-500">Goods Inward Entry</span>
+              </div>
+            </Link>
+
+            <Link
+              href="/products"
+              className="flex items-center gap-3 p-3.5 rounded-xl border border-emerald-100 bg-emerald-50/70 hover:bg-emerald-100/70 text-[#24282c] transition-all cursor-pointer group"
+            >
+              <div className="h-10 w-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <PackagePlus className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="block text-xs font-bold text-[#24282c]">Add Product</span>
+                <span className="block text-[11px] text-slate-500">Hardware Catalog</span>
+              </div>
+            </Link>
+
+            <Link
+              href="/payments?type=CUSTOMER"
+              className="flex items-center gap-3 p-3.5 rounded-xl border border-purple-100 bg-purple-50/70 hover:bg-purple-100/70 text-[#24282c] transition-all cursor-pointer group"
+            >
+              <div className="h-10 w-10 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <CreditCard className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="block text-xs font-bold text-[#24282c]">Receive Payment</span>
+                <span className="block text-[11px] text-slate-500">Customer Dues</span>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* 3. Small Low-Stock Alert List (Only shown when products actually need attention) */}
+        {lowStockItems.length > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 shadow-xs">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <h3 className="text-xs font-bold text-amber-900 uppercase tracking-wider">
+                  Attention Required: Low Stock Items ({lowStockItems.length})
+                </h3>
+              </div>
+              <Link
+                href="/purchase"
+                className="text-xs font-bold text-amber-800 hover:text-amber-900 underline"
+              >
+                Create Purchase Order &rarr;
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {lowStockItems.slice(0, 6).map((item: any) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-white border border-amber-200/80 text-xs shadow-2xs"
+                >
+                  <div className="truncate pr-2">
+                    <span className="font-bold text-[#24282c] block truncate">{item.name}</span>
+                    <span className="text-[10px] text-slate-500 font-mono">SKU: {item.sku}</span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="font-bold text-rose-600 block">
+                      {item.currentStock} {item.unit?.code}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Min: {item.minStockLevel}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Top 6 KPI Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <KpiCard
-            title="Today's Sales"
-            value={formatINR(kpis.todaySales)}
-            subtitle={`${kpis.todaySalesCount} Invoices generated today`}
-            icon={ShoppingCart}
-            color="orange"
-            trend={{ value: "+14.2%", isPositive: true }}
-          />
-
-          <KpiCard
-            title="Today's Purchase"
-            value={formatINR(kpis.todayPurchase)}
-            subtitle={`${kpis.todayPurchaseCount} Material orders received`}
-            icon={Truck}
-            color="blue"
-          />
-
-          <KpiCard
-            title="Today's Collection"
-            value={formatINR(kpis.todayCollection)}
-            subtitle="Cash, UPI & Bank inflows"
-            icon={ArrowDownLeft}
-            color="emerald"
-          />
-
-          <KpiCard
-            title="Total Receivables"
-            value={formatINR(kpis.totalReceivable)}
-            subtitle="Customer outstanding balance"
-            icon={ArrowDownLeft}
-            color="amber"
-          />
-
-          <KpiCard
-            title="Total Payables"
-            value={formatINR(kpis.totalPayable)}
-            subtitle="Supplier / Dealer outstanding"
-            icon={ArrowUpRight}
-            color="rose"
-          />
-
-          <KpiCard
-            title="Current Stock Value"
-            value={formatINR(kpis.currentStockValue)}
-            subtitle={`${kpis.totalProductsCount} SKUs across godowns`}
-            icon={Boxes}
-            color="purple"
-          />
-        </div>
-
-        {/* Charts & Analytics Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Monthly Sales vs Purchase Bar Comparison */}
-          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  Sales vs Purchase (Last 6 Months)
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Monthly turnover comparison (in ₹)
-                </p>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-medium">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-3 w-3 rounded-xs bg-orange-500 inline-block" />
-                  Sales
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-3 w-3 rounded-xs bg-blue-500 inline-block" />
-                  Purchase
-                </span>
-              </div>
+        {/* 4. Compact Recent Transactions Table */}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-bold text-[#24282c]">Recent Transactions</h2>
+              <p className="text-xs text-slate-500">Latest sales invoices generated</p>
             </div>
-
-            <div className="space-y-4 pt-2">
-              {data?.monthlyData?.map((item: any, idx: number) => {
-                const maxVal = 600000;
-                const salesPercent = Math.min(100, (item.sales / maxVal) * 100);
-                const purchasePercent = Math.min(100, (item.purchase / maxVal) * 100);
-
-                return (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex justify-between text-xs font-semibold text-slate-700">
-                      <span>{item.month}</span>
-                      <div className="flex gap-4">
-                        <span className="text-orange-600 font-bold">{formatINR(item.sales)}</span>
-                        <span className="text-blue-600 font-bold">{formatINR(item.purchase)}</span>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      {/* Sales bar */}
-                      <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-orange-500 rounded-full transition-all duration-500"
-                          style={{ width: `${salesPercent}%` }}
-                        />
-                      </div>
-                      {/* Purchase bar */}
-                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                          style={{ width: `${purchasePercent}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <Link
+              href="/sales"
+              className="text-xs font-bold text-[#e16718] hover:underline flex items-center gap-1"
+            >
+              <span>View All Sales</span>
+              <span>&rarr;</span>
+            </Link>
           </div>
 
-          {/* Low Stock Items Card */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  <span>Items Needing Restock</span>
-                </h3>
-                <Link
-                  href="/inventory/low-stock"
-                  className="text-xs font-semibold text-orange-600 hover:text-orange-700"
-                >
-                  View All
-                </Link>
-              </div>
-
-              <div className="divide-y divide-slate-100">
-                {data?.lowStockItems?.length === 0 ? (
-                  <p className="py-8 text-center text-xs text-slate-400">
-                    All inventory levels are optimal.
-                  </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-200 bg-slate-50/70 text-slate-600 font-semibold">
+                <tr>
+                  <th className="py-2.5 px-3">Date</th>
+                  <th className="py-2.5 px-3">Invoice Number</th>
+                  <th className="py-2.5 px-3">Customer</th>
+                  <th className="py-2.5 px-3 text-right">Amount</th>
+                  <th className="py-2.5 px-3 text-center">Payment Status</th>
+                  <th className="py-2.5 px-3 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentSales.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400">
+                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      No recent sales found. Create your first bill above.
+                    </td>
+                  </tr>
                 ) : (
-                  data?.lowStockItems?.map((p: any) => (
-                    <div key={p.id} className="py-2.5 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-semibold text-slate-800">{p.name}</p>
-                        <p className="text-[11px] text-slate-400">SKU: {p.sku}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-bold text-rose-600">
-                          {p.currentStock} {p.unit?.code}
-                        </span>
-                        <p className="text-[10px] text-slate-400">
-                          Min: {p.minStockLevel} {p.unit?.code}
-                        </p>
-                      </div>
-                    </div>
+                  recentSales.map((sale: any) => (
+                    <tr key={sale.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3 px-3 text-slate-600 font-medium whitespace-nowrap">
+                        {formatDate(sale.date)}
+                      </td>
+                      <td className="py-3 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">
+                        {sale.invoiceNumber}
+                      </td>
+                      <td className="py-3 px-3 text-slate-800 font-medium">
+                        {sale.customer?.name || "Walk-in Customer"}
+                      </td>
+                      <td className="py-3 px-3 text-right font-bold text-slate-900 whitespace-nowrap">
+                        {formatINR(sale.grandTotal)}
+                      </td>
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        <StatusBadge status={sale.status} />
+                      </td>
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        <button
+                          onClick={() => setSelectedInvoice(sale)}
+                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                        >
+                          <Eye className="h-3 w-3 text-slate-500" />
+                          <span>View</span>
+                        </button>
+                      </td>
+                    </tr>
                   ))
                 )}
-              </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <Link
-                href="/purchase"
-                className="flex items-center justify-center gap-2 w-full rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
-              >
-                <Truck className="h-4 w-4" />
-                <span>Create Purchase Inward</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity: Sales and Collections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Invoices Table */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900">
-                Recent Sales Invoices
-              </h3>
-              <Link
-                href="/sales"
-                className="text-xs font-semibold text-orange-600 hover:text-orange-700"
-              >
-                View Invoices →
-              </Link>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-3 py-2">Invoice #</th>
-                    <th className="px-3 py-2">Customer</th>
-                    <th className="px-3 py-2 text-right">Amount</th>
-                    <th className="px-3 py-2 text-center">Status</th>
-                    <th className="px-3 py-2 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {data?.recentSales?.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-6 text-center text-slate-400">
-                        No recent sales recorded.
-                      </td>
-                    </tr>
-                  ) : (
-                    data?.recentSales?.map((sale: any) => (
-                      <tr key={sale.id} className="hover:bg-slate-50">
-                        <td className="px-3 py-2.5 font-mono font-semibold text-slate-900">
-                          {sale.invoiceNumber}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <p className="font-semibold text-slate-800 truncate max-w-[140px]">
-                            {sale.customer.name}
-                          </p>
-                          <p className="text-[10px] text-slate-400">
-                            {formatDate(sale.date)}
-                          </p>
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-bold text-slate-900">
-                          {formatINR(sale.grandTotal)}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          <StatusBadge status={sale.status} size="sm" />
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          <button
-                            onClick={() => setSelectedInvoice(sale)}
-                            className="rounded p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-800"
-                            title="View / Print Invoice"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Recent Collections Table */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900">
-                Recent Collections & Payments
-              </h3>
-              <Link
-                href="/payments?type=CUSTOMER"
-                className="text-xs font-semibold text-orange-600 hover:text-orange-700"
-              >
-                View Payments →
-              </Link>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-3 py-2">Receipt #</th>
-                    <th className="px-3 py-2">Party</th>
-                    <th className="px-3 py-2">Mode</th>
-                    <th className="px-3 py-2 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {data?.recentPayments?.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="py-6 text-center text-slate-400">
-                        No recent payments recorded.
-                      </td>
-                    </tr>
-                  ) : (
-                    data?.recentPayments?.map((payment: any) => (
-                      <tr key={payment.id} className="hover:bg-slate-50">
-                        <td className="px-3 py-2.5 font-mono text-slate-700">
-                          {payment.paymentNumber}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <p className="font-semibold text-slate-800 truncate max-w-[140px]">
-                            {payment.customer?.name || payment.supplier?.name}
-                          </p>
-                          <p className="text-[10px] text-slate-400">
-                            {formatDate(payment.date)}
-                          </p>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                            {payment.paymentMode}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-bold text-emerald-600">
-                          +{formatINR(payment.amount)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      {/* Invoice Viewer Modal */}
+      {/* Printable Invoice Modal */}
       {selectedInvoice && (
         <PrintableInvoice
           sale={selectedInvoice}

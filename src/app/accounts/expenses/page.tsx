@@ -7,9 +7,41 @@ import Modal from "@/components/ui/Modal";
 import { formatINR, formatDate } from "@/lib/format";
 import { Receipt, Plus, RefreshCw } from "lucide-react";
 
+const INITIAL_EXPENSES = [
+  {
+    id: "exp-1",
+    expenseNumber: "EXP-26/001",
+    date: "2026-10-09T10:00:00Z",
+    category: { name: "Freight & Transportation" },
+    amount: 2500,
+    paidTo: "Balaji Tempo Transport",
+    paymentMode: "CASH",
+    description: "Cement delivery tempo freight to Baner site",
+  },
+  {
+    id: "exp-2",
+    expenseNumber: "EXP-26/002",
+    date: "2026-10-08T14:30:00Z",
+    category: { name: "Labour Daily Wages" },
+    amount: 1800,
+    paidTo: "Yard Labour (3 Workers)",
+    paymentMode: "CASH",
+    description: "Unloading TMT steel rebar consignment",
+  },
+  {
+    id: "exp-3",
+    expenseNumber: "EXP-26/003",
+    date: "2026-10-07T16:00:00Z",
+    category: { name: "Office & Tea" },
+    amount: 450,
+    paidTo: "Ramesh Tea Stall",
+    paymentMode: "UPI",
+    description: "Weekly contractor refreshments",
+  },
+];
+
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [expenses, setExpenses] = useState<any[]>(INITIAL_EXPENSES);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   // Form State
@@ -18,43 +50,6 @@ export default function ExpensesPage() {
   const [paidTo, setPaidTo] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
   const [description, setDescription] = useState("");
-
-  const sampleExpenses = [
-    {
-      id: "exp-1",
-      expenseNumber: "EXP-26/001",
-      date: new Date(),
-      category: { name: "Freight & Transportation" },
-      amount: 2500,
-      paidTo: "Balaji Tempo Transport",
-      paymentMode: "CASH",
-      description: "Cement delivery tempo freight to Baner site",
-    },
-    {
-      id: "exp-2",
-      expenseNumber: "EXP-26/002",
-      date: new Date(Date.now() - 86400000),
-      category: { name: "Labour Daily Wages" },
-      amount: 1800,
-      paidTo: "Yard Labour (3 Workers)",
-      paymentMode: "CASH",
-      description: "Unloading TMT steel rebar consignment",
-    },
-    {
-      id: "exp-3",
-      expenseNumber: "EXP-26/003",
-      date: new Date(Date.now() - 172800000),
-      category: { name: "Office & Tea" },
-      amount: 450,
-      paidTo: "Ramesh Tea Stall",
-      paymentMode: "UPI",
-      description: "Weekly contractor refreshments",
-    },
-  ];
-
-  useEffect(() => {
-    setExpenses(sampleExpenses);
-  }, []);
 
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault();

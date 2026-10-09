@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import { formatINR, formatDate, numberToWordsINR } from "@/lib/format";
-import { Printer, Share2, Download, X, Building2, CheckCircle2 } from "lucide-react";
+import { Printer, Share2, X } from "lucide-react";
 
 interface InvoiceItem {
   id?: string;
@@ -26,12 +26,14 @@ interface InvoiceItem {
 }
 
 interface PrintableInvoiceProps {
+  documentTitle?: string;
+  documentType?: "INVOICE" | "QUOTATION";
   sale: {
     id: string;
     invoiceNumber: string;
     date: string | Date;
     dueDate?: string | Date | null;
-    paymentMode: string;
+    paymentMode?: string;
     status: string;
     subtotal: number;
     discount: number;
@@ -41,8 +43,8 @@ interface PrintableInvoiceProps {
     igstAmount: number;
     taxAmount: number;
     grandTotal: number;
-    paidAmount: number;
-    balanceAmount: number;
+    paidAmount?: number;
+    balanceAmount?: number;
     notes?: string | null;
     terms?: string | null;
     customer: {
@@ -81,12 +83,14 @@ interface PrintableInvoiceProps {
 
 export default function PrintableInvoice({
   sale,
+  documentTitle = "TAX INVOICE",
+  documentType = "INVOICE",
   company = {
-    name: "BuildStock ERP",
-    legalName: "Shivom Construction & Hardware Supplies Pvt Ltd",
+    name: "Shivom Construction",
+    legalName: "Shivom Construction",
     gstin: "27AABCS1429B1Z8",
     pan: "AABCS1429B",
-    email: "sales@buildstockerp.com",
+    email: "contact@shivomconstruction.com",
     phone: "+91 98200 12345",
     address: "Plot No. 42, Industrial Area, Ring Road Phase 2",
     city: "Pune",
@@ -108,7 +112,8 @@ export default function PrintableInvoice({
   };
 
   const handleWhatsAppShare = () => {
-    const text = `*Tax Invoice: ${sale.invoiceNumber}*\nCompany: ${company.legalName || company.name}\nCustomer: ${sale.customer.name}\nDate: ${formatDate(sale.date)}\nTotal Amount: ${formatINR(sale.grandTotal)}\nAmount Paid: ${formatINR(sale.paidAmount)}\nBalance Due: ${formatINR(sale.balanceAmount)}\n\nThank you for your business!`;
+    const isQuotation = documentType === "QUOTATION";
+    const text = `*${isQuotation ? "Quotation Estimate" : "Tax Invoice"}: ${sale.invoiceNumber}*\nCompany: ${company.legalName || company.name}\nCustomer: ${sale.customer.name}\nDate: ${formatDate(sale.date)}\nTotal Amount: ${formatINR(sale.grandTotal)}${!isQuotation && sale.paidAmount !== undefined ? `\nAmount Paid: ${formatINR(sale.paidAmount)}\nBalance Due: ${formatINR(sale.balanceAmount)}` : ""}\n\nThank you for choosing Shivom Construction!`;
     const cleanPhone = sale.customer.mobile.replace(/\D/g, "");
     const url = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
@@ -121,10 +126,10 @@ export default function PrintableInvoice({
         <div className="no-print flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-800 text-sm">
-              Tax Invoice Preview ({sale.invoiceNumber})
+              {documentType === "QUOTATION" ? "Quotation Preview" : "Tax Invoice Preview"} ({sale.invoiceNumber})
             </span>
             <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-              GST Ready
+              {documentType === "QUOTATION" ? "Estimate" : "GST Ready"}
             </span>
           </div>
 
@@ -162,37 +167,51 @@ export default function PrintableInvoice({
           {/* Header Title Banner */}
           <div className="border-b-2 border-slate-900 pb-4 mb-4">
             <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">
-                  {company.legalName || company.name}
-                </h1>
-                <p className="text-slate-600 mt-1 max-w-md">
-                  {company.address}, {company.city}, {company.state} - {company.pincode}
-                </p>
-                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-slate-600">
-                  <p><strong className="text-slate-900">GSTIN:</strong> {company.gstin}</p>
-                  <p><strong className="text-slate-900">State:</strong> {company.state} ({company.stateCode})</p>
-                  <p><strong className="text-slate-900">Phone:</strong> {company.phone}</p>
+              <div className="flex items-start gap-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/shivom-logo.png"
+                  alt="Shivom Construction Logo"
+                  className="h-16 w-auto object-contain shrink-0"
+                />
+                <div>
+                  <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+                    {company.legalName || company.name}
+                  </h1>
+                  <p className="text-[11px] font-bold text-[#e16718] uppercase tracking-wider">
+                    Building Material Supply
+                  </p>
+                  <p className="text-slate-600 mt-1 max-w-md">
+                    {company.address}, {company.city}, {company.state} - {company.pincode}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-slate-600">
+                    <p><strong className="text-slate-900">GSTIN:</strong> {company.gstin}</p>
+                    <p><strong className="text-slate-900">State:</strong> {company.state} ({company.stateCode})</p>
+                    <p><strong className="text-slate-900">Phone:</strong> {company.phone}</p>
+                  </div>
                 </div>
               </div>
 
               <div className="text-right">
                 <span className="inline-block rounded border border-slate-900 px-3 py-1 font-bold uppercase tracking-wider text-slate-900 text-sm">
-                  TAX INVOICE
+                  {documentTitle}
                 </span>
                 <p className="text-[10px] text-slate-500 mt-1 uppercase">
-                  Original for Recipient
+                  {documentType === "QUOTATION" ? "Commercial Estimate" : "Original for Recipient"}
                 </p>
                 <div className="mt-2 text-right">
                   <p className="text-sm font-bold text-slate-900">
-                    Invoice No: <span className="font-mono text-orange-600">{sale.invoiceNumber}</span>
+                    {documentType === "QUOTATION" ? "Estimate No: " : "Invoice No: "}
+                    <span className="font-mono text-orange-600">{sale.invoiceNumber}</span>
                   </p>
                   <p className="text-xs text-slate-600 mt-0.5">
                     Date: <strong>{formatDate(sale.date)}</strong>
                   </p>
-                  <p className="text-xs text-slate-600">
-                    Payment Mode: <strong className="uppercase">{sale.paymentMode}</strong>
-                  </p>
+                  {sale.paymentMode && (
+                    <p className="text-xs text-slate-600">
+                      Payment Mode: <strong className="uppercase">{sale.paymentMode}</strong>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

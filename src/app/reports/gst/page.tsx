@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { formatINR } from "@/lib/format";
 import { FileText, Printer, Download, RefreshCw } from "lucide-react";
+import { exportToCSV } from "@/lib/export";
 
 export default function GSTReportPage() {
   const [report, setReport] = useState<any>(null);
@@ -29,6 +30,20 @@ export default function GSTReportPage() {
   const s = report?.salesGST || { taxable: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 };
   const p = report?.purchaseGST || { taxable: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 };
 
+  const handleExportCSV = () => {
+    const headers = ["Section", "HSN Code / Head", "Description", "Taxable Value (₹)", "CGST (₹)", "SGST (₹)", "IGST (₹)", "Total Tax (₹)"];
+    const rows: (string | number)[][] = [
+      ["Sales (Output Tax)", "Outward Supplies", "Total Sales GST", s.taxable, s.cgst, s.sgst, s.igst, s.totalTax],
+      ["Purchases (Input Tax)", "Inward Supplies", "Total Purchase ITC", p.taxable, p.cgst, p.sgst, p.igst, p.totalTax],
+    ];
+    if (report?.hsnSummary) {
+      report.hsnSummary.forEach((h: any) => {
+        rows.push(["HSN Breakdown", h.hsn, h.description || "", h.taxable, "", "", "", h.tax]);
+      });
+    }
+    exportToCSV(`GST_Filing_Report_${new Date().toISOString().split("T")[0]}`, headers, rows);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -44,6 +59,13 @@ export default function GSTReportPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+            >
+              <Download className="h-4 w-4 text-slate-600" />
+              <span>Export CSV</span>
+            </button>
             <button
               onClick={() => window.print()}
               className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"

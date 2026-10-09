@@ -6,13 +6,27 @@ import DataTable, { Column } from "@/components/ui/DataTable";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 import SearchableSelect, { Option } from "@/components/ui/SearchableSelect";
+import PrintableInvoice from "@/components/invoice/PrintableInvoice";
 import { formatINR, formatDate, calculateGSTBreakdown } from "@/lib/format";
-import { Plus, FileSpreadsheet, RefreshCw, ArrowRight, Trash2 } from "lucide-react";
+import { exportToCSV } from "@/lib/export";
+import {
+  Plus,
+  FileSpreadsheet,
+  RefreshCw,
+  ArrowRight,
+  Trash2,
+  Download,
+  Eye,
+  Send,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 
 export default function QuotationsPage() {
   const [quotations, setQuotations] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [company, setCompany] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   // Modal State
@@ -20,19 +34,26 @@ export default function QuotationsPage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [cart, setCart] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [validDays, setValidDays] = useState(15);
+  const [notes, setNotes] = useState("");
+
+  // Preview Modal
+  const [viewingQuotation, setViewingQuotation] = useState<any>(null);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [qRes, cRes, pRes] = await Promise.all([
+      const [qRes, cRes, pRes, compRes] = await Promise.all([
         fetch("/api/quotations"),
         fetch("/api/customers"),
         fetch("/api/products"),
+        fetch("/api/company"),
       ]);
 
       const qJson = await qRes.json();
       const cJson = await cRes.json();
       const pJson = await pRes.json();
+      const compJson = await compRes.json();
 
       if (qJson.success) setQuotations(qJson.data);
       if (cJson.success) {
@@ -42,6 +63,7 @@ export default function QuotationsPage() {
         }
       }
       if (pJson.success) setProducts(pJson.data);
+      if (compJson.success) setCompany(compJson.data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -87,6 +109,8 @@ export default function QuotationsPage() {
         body: JSON.stringify({
           customerId: selectedCustomerId,
           items: cart,
+          validDays,
+          notes,
         }),
       });
 
@@ -94,6 +118,7 @@ export default function QuotationsPage() {
       if (res.ok) {
         setIsAddModalOpen(false);
         setCart([]);
+        setNotes("");
         fetchData();
       } else {
         alert(data.error || "Failed to create quotation");
@@ -105,8 +130,35 @@ export default function QuotationsPage() {
     }
   };
 
+  const handleUpdateStatus = async (quotationId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/quotations/${quotationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to update quotation status");
+      }
+    } catch {
+      alert("Error updating quotation status");
+    }
+  };
+
   const handleConvertToSale = async (quotation: any) => {
-    if (!confirm(`Convert Quotation ${quotation.quotationNumber} directly into a confirmed Tax Invoice?`)) {
+    if (quotation.status === "CONVERTED") {
+      alert("This quotation has already been converted into an invoice.");
+      return;
+    }
+
+    if (
+      !confirm(
+        `Convert Quotation ${quotation.quotationNumber} into an official Tax Invoice? This will deduct physical inventory and generate a confirmed sale.`
+      )
+    ) {
       return;
     }
 
@@ -116,6 +168,7 @@ export default function QuotationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerId: quotation.customerId,
+          quotationId: quotation.id,
           items: quotation.items.map((i: any) => ({
             productId: i.productId,
             quantity: i.quantity,
@@ -137,8 +190,32 @@ export default function QuotationsPage() {
         alert(data.error || "Failed to convert quotation");
       }
     } catch {
-      alert("Error converting to sale");
+      alert("Error converting quotation to sale");
     }
+  };
+
+  const handleExportCSV = () => {
+    const headers = [
+      "Quotation #",
+      "Date",
+      "Customer",
+      "Valid Until",
+      "Taxable Value (₹)",
+      "Tax Amount (₹)",
+      "Grand Total (₹)",
+      "Status",
+    ];
+    const rows = quotations.map((q) => [
+      q.quotationNumber,
+      formatDate(q.date),
+      q.customer?.name || "Customer",
+      formatDate(q.validUntil),
+      q.taxableAmount,
+      q.taxAmount,
+      q.grandTotal,
+      q.status,
+    ]);
+    exportToCSV(`Quotations_List_${new Date().toISOString().split("T")[0]}`, headers, rows);
   };
 
   const customerOptions: Option[] = customers.map((c) => ({
@@ -176,7 +253,7 @@ export default function QuotationsPage() {
       header: "Customer",
       cell: (row) => (
         <span className="font-bold text-slate-800 text-xs block">
-          {row.customer.name}
+          {row.customer?.name}
         </span>
       ),
     },
@@ -201,19 +278,63 @@ export default function QuotationsPage() {
     {
       header: "Status",
       accessorKey: "status",
-      cell: (row) => <StatusBadge status={row.status} size="sm" />,
+      cell: (row) => (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <StatusBadge status={row.status} size="sm" />
+          {row.status === "DRAFT" && (
+            <button
+              onClick={() => handleUpdateStatus(row.id, "SENT")}
+              title="Mark as Sent to Client"
+              className="text-blue-600 hover:text-blue-800 p-0.5 rounded hover:bg-blue-50 transition-colors"
+            >
+              <Send className="h-3 w-3" />
+            </button>
+          )}
+          {row.status === "SENT" && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handleUpdateStatus(row.id, "ACCEPTED")}
+                title="Mark as Accepted"
+                className="text-emerald-600 hover:text-emerald-800 p-0.5 rounded hover:bg-emerald-50 transition-colors"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => handleUpdateStatus(row.id, "REJECTED")}
+                title="Mark as Rejected"
+                className="text-rose-600 hover:text-rose-800 p-0.5 rounded hover:bg-rose-50 transition-colors"
+              >
+                <XCircle className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      ),
     },
     {
-      header: "Convert",
-      className: "text-center",
+      header: "Actions",
+      className: "text-right",
       cell: (row) => (
-        <button
-          onClick={() => handleConvertToSale(row)}
-          className="flex items-center gap-1 rounded bg-orange-50 hover:bg-orange-600 hover:text-white text-orange-700 px-2 py-1 text-[11px] font-bold transition-colors mx-auto"
-        >
-          <span>Convert to Sale</span>
-          <ArrowRight className="h-3 w-3" />
-        </button>
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            onClick={() => setViewingQuotation(row)}
+            title="Preview & Print Estimate"
+            className="flex items-center gap-1 rounded border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-2 py-1 text-[11px] font-semibold transition-colors"
+          >
+            <Eye className="h-3 w-3 text-slate-500" />
+            <span>View</span>
+          </button>
+          {row.status !== "CONVERTED" && row.status !== "REJECTED" && (
+            <button
+              onClick={() => handleConvertToSale(row)}
+              title="Convert this quotation into a confirmed sales invoice"
+              className="flex items-center gap-1 rounded bg-orange-50 hover:bg-orange-600 hover:text-white text-orange-700 px-2 py-1 text-[11px] font-bold transition-colors"
+            >
+              <span>Convert</span>
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       ),
     },
   ];
@@ -221,7 +342,7 @@ export default function QuotationsPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between no-print">
           <div>
             <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
               <FileSpreadsheet className="h-6 w-6 text-purple-600" />
@@ -232,7 +353,14 @@ export default function QuotationsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+            >
+              <Download className="h-4 w-4 text-slate-600" />
+              <span>Export CSV</span>
+            </button>
             <button
               onClick={fetchData}
               disabled={loading}
@@ -268,14 +396,29 @@ export default function QuotationsPage() {
         maxWidth="4xl"
       >
         <form onSubmit={handleCreateQuotation} className="space-y-4">
-          <div>
-            <SearchableSelect
-              label="Customer"
-              options={customerOptions}
-              value={selectedCustomerId}
-              onChange={(val) => setSelectedCustomerId(val)}
-              required
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <SearchableSelect
+                label="Customer"
+                options={customerOptions}
+                value={selectedCustomerId}
+                onChange={(val) => setSelectedCustomerId(val)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Validity Period (Days)
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="90"
+                value={validDays}
+                onChange={(e) => setValidDays(Number(e.target.value))}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-purple-500 focus:outline-hidden"
+              />
+            </div>
           </div>
 
           <div>
@@ -370,6 +513,19 @@ export default function QuotationsPage() {
             </table>
           </div>
 
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Terms & Notes (Optional)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Prices valid for 15 days, unloading charges extra"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-purple-500 focus:outline-hidden"
+            />
+          </div>
+
           <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
             <button
               type="button"
@@ -388,6 +544,42 @@ export default function QuotationsPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Preview & Print Modal */}
+      {viewingQuotation && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden my-8">
+            <PrintableInvoice
+              documentTitle="ESTIMATE / QUOTATION"
+              documentType="QUOTATION"
+              sale={{
+                id: viewingQuotation.id,
+                invoiceNumber: viewingQuotation.quotationNumber,
+                date: viewingQuotation.date,
+                dueDate: viewingQuotation.validUntil,
+                status: viewingQuotation.status,
+                subtotal: viewingQuotation.subtotal,
+                discount: viewingQuotation.discount,
+                taxableAmount: viewingQuotation.taxableAmount,
+                cgstAmount: viewingQuotation.cgstAmount,
+                sgstAmount: viewingQuotation.sgstAmount,
+                igstAmount: viewingQuotation.igstAmount,
+                taxAmount: viewingQuotation.taxAmount,
+                grandTotal: viewingQuotation.grandTotal,
+                notes: viewingQuotation.notes,
+                terms: viewingQuotation.terms,
+                customer: viewingQuotation.customer,
+                items: viewingQuotation.items.map((i: any) => ({
+                  ...i,
+                  product: i.product || { name: i.description || "Material Item", sku: "" },
+                })),
+              }}
+              company={company}
+              onClose={() => setViewingQuotation(null)}
+            />
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

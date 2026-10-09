@@ -17,7 +17,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({
   children,
-  user = { name: "Owner Admin", email: "admin@buildstock.com", role: "ADMIN" },
+  user = { name: "Owner Admin", email: "admin@shivomconstruction.com", role: "ADMIN" },
   lowStockCount = 0,
 }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -27,6 +27,7 @@ export default function AppLayout({
       {/* Sidebar Navigation */}
       <Sidebar
         userRole={user.role}
+        currentUser={user}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
