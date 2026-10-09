@@ -66,8 +66,14 @@ function LoginForm() {
         return;
       }
 
-      router.push(callbackUrl);
-      router.refresh();
+      // Determine authorized destination and perform clean navigation
+      let destination = callbackUrl;
+      if (!callbackUrl || callbackUrl === "/login" || callbackUrl === "/") {
+        destination = "/dashboard";
+      }
+
+      // Complete memory and cache flush
+      window.location.href = destination;
     } catch {
       setError("Network connection issue. Please check your network and try again.");
       setLoading(false);

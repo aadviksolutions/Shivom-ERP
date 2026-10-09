@@ -128,27 +128,36 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        role: user.role,
-        kpis: {
-          todaySales: todaySalesGrandTotal,
-          todaySalesCount: todaySalesCount,
-          todayPurchase: todayPurchaseGrandTotal,
-          todayPurchaseCount: todayPurchaseCount,
-          todayCollection: todayCollectionAmount,
-          totalReceivable: totalReceivableBalance,
-          totalPayable: totalPayableBalance,
-          currentStockValue: Math.round(totalStockValue),
-          totalProductsCount: products.length,
-          lowStockCount: lowStockItems.length,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          role: user.role,
+          kpis: {
+            todaySales: todaySalesGrandTotal,
+            todaySalesCount: todaySalesCount,
+            todayPurchase: todayPurchaseGrandTotal,
+            todayPurchaseCount: todayPurchaseCount,
+            todayCollection: todayCollectionAmount,
+            totalReceivable: totalReceivableBalance,
+            totalPayable: totalPayableBalance,
+            currentStockValue: Math.round(totalStockValue),
+            totalProductsCount: products.length,
+            lowStockCount: lowStockItems.length,
+          },
+          lowStockItems: lowStockItems.slice(0, 6),
+          recentSales,
+          recentPurchases,
         },
-        lowStockItems: lowStockItems.slice(0, 6),
-        recentSales,
-        recentPurchases,
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("Dashboard API error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

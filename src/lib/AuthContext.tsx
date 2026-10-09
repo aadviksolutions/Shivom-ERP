@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Role } from "./auth";
 import { ModuleKey, ActionKey, hasPermission as checkPermission } from "./permissions";
 
@@ -20,6 +19,7 @@ interface AuthContextType {
   loading: boolean;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  setAuthUser: (user: AuthUser | null) => void;
   hasAccess: (module: ModuleKey, action: ActionKey) => boolean;
   canAccessRole: (requiredRoles: Role[]) => boolean;
 }
@@ -29,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   logout: async () => {},
   refreshUser: async () => {},
+  setAuthUser: () => {},
   hasAccess: () => false,
   canAccessRole: () => false,
 });
@@ -36,11 +37,12 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   const fetchCurrentUser = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetch("/api/auth/me", {
+        headers: { "Cache-Control": "no-cache" },
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.authenticated && data.user) {
@@ -67,13 +69,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {
       setUser(null);
-      router.push("/login");
-      router.refresh();
+      window.location.href = "/login";
     }
   };
 
   const refreshUser = async () => {
+    setLoading(true);
     await fetchCurrentUser();
+  };
+
+  const setAuthUser = (newUser: AuthUser | null) => {
+    setUser(newUser);
+    setLoading(false);
   };
 
   const hasAccess = useCallback(
@@ -100,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         logout,
         refreshUser,
+        setAuthUser,
         hasAccess,
         canAccessRole,
       }}

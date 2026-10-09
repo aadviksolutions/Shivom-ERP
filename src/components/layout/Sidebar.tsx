@@ -197,9 +197,8 @@ export default function Sidebar({
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-    } catch {
-      router.push("/login");
+    } finally {
+      window.location.href = "/login";
     }
   };
 

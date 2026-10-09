@@ -36,18 +36,27 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({
-      authenticated: true,
-      user: {
-        id: dbUser.id,
-        name: dbUser.name,
-        username: dbUser.username,
-        email: dbUser.email,
-        role: dbUser.role,
-        phone: dbUser.phone,
-        permissions: dbUser.permissions,
+    return NextResponse.json(
+      {
+        authenticated: true,
+        user: {
+          id: dbUser.id,
+          name: dbUser.name,
+          username: dbUser.username,
+          email: dbUser.email,
+          role: dbUser.role,
+          phone: dbUser.phone,
+          permissions: dbUser.permissions,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("GET /api/auth/me error:", error);
     return NextResponse.json(
